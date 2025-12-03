@@ -16,6 +16,7 @@ const session = require('express-session');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const { createClient } = require('@supabase/supabase-js');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,12 +33,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Session configuration
+// Note: secure: false until HTTPS/SSL is configured
 app.use(session({
   secret: process.env.SESSION_SECRET || 'nextbid-patcher-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to true when HTTPS is configured
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
@@ -55,9 +57,10 @@ const BUILD_DATE = new Date().toISOString().split('T')[0];
 const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
 const PRODUCTION_HOST = '64.23.151.201';
 
-// Tradeline configurations
+// Tradeline configurations with slugs for proxy routing
 const TRADELINES = [
   {
+    slug: 'security',
     name: 'Fire/Life Safety & Security Systems',
     type: 'Security',
     adminPort: 3002,
@@ -67,6 +70,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'business',
     name: 'Administrative & Business Services',
     type: 'Business',
     adminPort: 3003,
@@ -76,6 +80,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'facilities',
     name: 'Facility Maintenance & Punch-Out',
     type: 'Facilities',
     adminPort: 3004,
@@ -85,6 +90,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'electrical',
     name: 'Electrical Construction',
     type: 'Construction',
     adminPort: 3005,
@@ -94,6 +100,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'logistics',
     name: 'Courier / Delivery / Logistics',
     type: 'Logistics',
     adminPort: 3006,
@@ -103,6 +110,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'lowvoltage',
     name: 'Low Voltage Technology',
     type: 'Technology',
     adminPort: 3007,
@@ -112,6 +120,7 @@ const TRADELINES = [
     status: 'online'
   },
   {
+    slug: 'landscaping',
     name: 'Landscaping & Grounds Maintenance',
     type: 'Grounds',
     adminPort: 3008,
@@ -121,6 +130,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'hvac',
     name: 'HVAC / Mechanical',
     type: 'Mechanical',
     adminPort: 3009,
@@ -130,6 +140,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'plumbing',
     name: 'Plumbing Services',
     type: 'Plumbing',
     adminPort: 3010,
@@ -139,6 +150,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'custodial',
     name: 'Custodial & Janitorial Services',
     type: 'Custodial',
     adminPort: 3011,
@@ -148,6 +160,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'it',
     name: 'IT & Technical Services',
     type: 'IT',
     adminPort: 3012,
@@ -157,6 +170,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'environmental',
     name: 'Environmental & Waste Services',
     type: 'Environmental',
     adminPort: 3013,
@@ -166,6 +180,7 @@ const TRADELINES = [
     status: 'offline'
   },
   {
+    slug: 'painting',
     name: 'Painting & Surface Coatings',
     type: 'Painting',
     adminPort: 3014,
@@ -212,8 +227,6 @@ async function getSystemStatus() {
   return status;
 }
 
-// Routes
-
 // Auth middleware
 function requireAuth(req, res, next) {
   if (req.session && req.session.user) {
@@ -221,6 +234,54 @@ function requireAuth(req, res, next) {
   }
   res.redirect('/?error=Please login to continue');
 }
+
+// Auth middleware for proxy (returns 401 instead of redirect)
+function requireAuthForProxy(req, res, next) {
+  if (req.session && req.session.user) {
+    return next();
+  }
+  res.status(401).send('Unauthorized - Please login at /');
+}
+
+//=============================================================================
+// PROXY ROUTES - Access tradeline admin panels through gateway
+// Routes: /admin/{slug}/* -> localhost:{port}/*
+//=============================================================================
+
+// Set up proxy for each tradeline
+TRADELINES.forEach(tradeline => {
+  const proxyPath = `/admin/${tradeline.slug}`;
+
+  app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({
+    target: `http://localhost:${tradeline.adminPort}`,
+    changeOrigin: true,
+    pathRewrite: {
+      [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
+    },
+    onProxyReq: (proxyReq, req, res) => {
+      // Add user info header so tradeline knows who's accessing
+      if (req.session && req.session.user) {
+        proxyReq.setHeader('X-NextBid-User', req.session.user.email);
+        proxyReq.setHeader('X-NextBid-Role', req.session.user.role);
+      }
+    },
+    onError: (err, req, res) => {
+      console.error(`Proxy error for ${tradeline.slug}:`, err.message);
+      res.status(502).send(`
+        <h1>Tradeline Offline</h1>
+        <p>The ${tradeline.name} server is not responding.</p>
+        <p>Port: ${tradeline.adminPort}</p>
+        <a href="/gateway">Back to Gateway</a>
+      `);
+    }
+  }));
+
+  console.log(`  Proxy configured: /admin/${tradeline.slug} -> localhost:${tradeline.adminPort}`);
+});
+
+//=============================================================================
+// ROUTES
+//=============================================================================
 
 // Login page (main entry point)
 app.get('/', async (req, res) => {
@@ -241,11 +302,10 @@ app.get('/', async (req, res) => {
 
 // Gateway page (after login)
 app.get('/gateway', requireAuth, async (req, res) => {
-  // Build tradeline list with URLs
-  const host = process.env.NODE_ENV === 'production' ? PRODUCTION_HOST : SERVER_HOST;
+  // Build tradeline list with proxy URLs (through authenticated gateway)
   const tradelines = TRADELINES.map(t => ({
     ...t,
-    url: `http://${host}:${t.adminPort}/`
+    url: `/admin/${t.slug}/`  // Proxy route through patcher
   }));
 
   res.render('gateway', {
@@ -259,6 +319,7 @@ app.get('/gateway', requireAuth, async (req, res) => {
 // Login POST
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('Login attempt for:', email);
 
   if (!email || !password) {
     return res.redirect('/?error=Email and password required');
@@ -272,12 +333,15 @@ app.post('/login', async (req, res) => {
       .eq('email', email.toLowerCase())
       .single();
 
+    console.log('DB lookup result:', error ? error.message : 'User found');
+
     if (error || !user) {
       return res.redirect('/?error=Invalid credentials');
     }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
+    console.log('Password valid:', validPassword);
     if (!validPassword) {
       return res.redirect('/?error=Invalid credentials');
     }
@@ -294,6 +358,7 @@ app.post('/login', async (req, res) => {
       name: user.name,
       role: user.role
     };
+    console.log('Session set for user:', user.email);
 
     // Update last login
     await supabase

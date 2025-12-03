@@ -1,0 +1,21 @@
+{
+  "name": "nextbid-patcher",
+  "version": "1.0.0",
+  "description": "NextBid Patcher - Login gateway and update system for NextBid Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

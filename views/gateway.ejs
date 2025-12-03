@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NextBid Engine - Gateway</title>
+  <link rel="stylesheet" href="/css/patcher.css">
+  <style>
+    /* Full page layout */
+    body {
+      display: block;
+      align-items: unset;
+      justify-content: unset;
+    }
+
+    .patcher-container {
+      max-width: 100% !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Gateway-specific styles */
+    .gateway-main {
+      padding: 40px 60px;
+      flex: 1;
+    }
+
+    .welcome-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .welcome-text h2 {
+      font-size: 24px;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+    }
+
+    .welcome-text p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-badge {
+      background: var(--bg-input);
+      padding: 8px 15px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .user-badge .name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .user-badge .role {
+      font-size: 11px;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      margin-left: 10px;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .logout-btn:hover {
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+
+    /* Server Grid */
+    .servers-section h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .servers-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .server-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+
+    .server-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+    }
+
+    .server-card.offline {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .server-card.offline:hover {
+      transform: none;
+      border-color: var(--border-color);
+    }
+
+    .server-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+
+    .server-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .server-type {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .server-status {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .server-status.online {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+    }
+
+    .server-status.offline {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .server-status.unknown {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-yellow);
+    }
+
+    .server-ports {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .port-info {
+      font-size: 12px;
+    }
+
+    .port-info .label {
+      color: var(--text-muted);
+    }
+
+    .port-info .value {
+      color: var(--text-primary);
+      font-family: monospace;
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: 5px;
+    }
+
+    .server-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .server-arrow {
+      float: right;
+      font-size: 20px;
+      color: var(--accent-blue);
+      opacity: 0;
+      transition: all 0.2s ease;
+    }
+
+    .server-card:hover .server-arrow {
+      opacity: 1;
+      transform: translateX(5px);
+    }
+
+    /* Coming Soon Section */
+    .coming-soon {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .coming-soon h3 {
+      color: var(--text-muted);
+    }
+
+    .coming-soon .servers-grid .server-card {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .coming-soon .servers-grid .server-card:hover {
+      transform: none;
+      border-color: var(--border-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="patcher-container">
+    <!-- Header -->
+    <div class="patcher-header">
+      <div class="logo">
+        <img src="/images/nextbid-logo.png" alt="NextBid" class="logo-image">
+        <div class="logo-text">
+          <h1>NEXTBID ENGINE</h1>
+          <span class="tagline">Tradeline Gateway</span>
+        </div>
+      </div>
+      <div class="version-info">
+        v<%= version %> | Build <%= buildDate %>
+      </div>
+    </div>
+
+    <!-- Main Gateway Content -->
+    <div class="gateway-main">
+      <!-- Welcome Header -->
+      <div class="welcome-header">
+        <div class="welcome-text">
+          <h2>Welcome back, <%= user.name.split(' ')[0] %></h2>
+          <p>Select a tradeline server to manage</p>
+        </div>
+        <div class="user-info">
+          <div class="user-badge">
+            <span class="name"><%= user.name %></span>
+            <span class="role"><%= user.role %></span>
+          </div>
+          <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+      </div>
+
+      <!-- Live Servers -->
+      <div class="servers-section">
+        <h3>Live Tradeline Servers</h3>
+        <div class="servers-grid">
+          <% tradelines.filter(t => t.live).forEach(function(t) { %>
+          <a href="<%= t.url %>" class="server-card" target="_blank">
+            <div class="server-header">
+              <div>
+                <div class="server-name"><%= t.name %></div>
+                <div class="server-type"><%= t.type %> Tradeline</div>
+              </div>
+              <span class="server-status <%= t.status %>"><%= t.status %></span>
+            </div>
+            <div class="server-ports">
+              <div class="port-info">
+                <span class="label">Admin:</span>
+                <span class="value">:<%= t.adminPort %></span>
+              </div>
+              <div class="port-info">
+                <span class="label">Engine:</span>
+                <span class="value">:<%= t.enginePort %></span>
+              </div>
+            </div>
+            <div class="server-desc">
+              <%= t.description %>
+              <span class="server-arrow">→</span>
+            </div>
+          </a>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Coming Soon Servers -->
+      <div class="coming-soon">
+        <h3>Coming Soon</h3>
+        <div class="servers-grid">
+          <% tradelines.filter(t => !t.live).forEach(function(t) { %>
+          <div class="server-card">
+            <div class="server-header">
+              <div>
+                <div class="server-name"><%= t.name %></div>
+                <div class="server-type"><%= t.type %> Tradeline</div>
+              </div>
+              <span class="server-status offline">PENDING</span>
+            </div>
+            <div class="server-ports">
+              <div class="port-info">
+                <span class="label">Admin:</span>
+                <span class="value">:<%= t.adminPort %></span>
+              </div>
+              <div class="port-info">
+                <span class="label">Engine:</span>
+                <span class="value">:<%= t.enginePort %></span>
+              </div>
+            </div>
+            <div class="server-desc"><%= t.description %></div>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="patcher-footer">
+      <div class="footer-left">
+        NextBid Engine &copy; 2025 MBE Solutions
+      </div>
+      <div class="footer-right">
+        <span class="connection-status online">Connected</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

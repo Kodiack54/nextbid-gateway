@@ -1,0 +1,363 @@
+/**
+ * NextBid Patcher - Login Gateway
+ *
+ * Port 3001 - Authentication gateway for all NextBid Engine services
+ *
+ * Features:
+ * - Login screen with system status display
+ * - Session management for authenticated users
+ * - Redirects to Master KPI Dashboard (port 3000) on successful login
+ * - Patch/update status display (future)
+ */
+
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const path = require('path');
+const bcrypt = require('bcrypt');
+const { createClient } = require('@supabase/supabase-js');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'nextbid-patcher-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// View engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Version info
+const VERSION = '1.0.0';
+const BUILD_DATE = new Date().toISOString().split('T')[0];
+
+// Server host configuration
+const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
+const PRODUCTION_HOST = '64.23.151.201';
+
+// Tradeline configurations
+const TRADELINES = [
+  {
+    name: 'Fire/Life Safety & Security Systems',
+    type: 'Security',
+    adminPort: 3002,
+    enginePort: 10002,
+    description: 'Fire alarm systems, life safety, security guard services, patrol contracts',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Administrative & Business Services',
+    type: 'Business',
+    adminPort: 3003,
+    enginePort: 10003,
+    description: 'Administrative support, staffing, professional business services',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Facility Maintenance & Punch-Out',
+    type: 'Facilities',
+    adminPort: 3004,
+    enginePort: 10004,
+    description: 'General facility maintenance, repairs, punch-out services',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Electrical Construction',
+    type: 'Construction',
+    adminPort: 3005,
+    enginePort: 10005,
+    description: 'Electrical construction, wiring, power systems installation',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Courier / Delivery / Logistics',
+    type: 'Logistics',
+    adminPort: 3006,
+    enginePort: 10006,
+    description: 'Courier services, package delivery, logistics and transportation',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Low Voltage Technology',
+    type: 'Technology',
+    adminPort: 3007,
+    enginePort: 10007,
+    description: 'Low voltage systems, CCTV, access control, structured cabling',
+    live: true,
+    status: 'online'
+  },
+  {
+    name: 'Landscaping & Grounds Maintenance',
+    type: 'Grounds',
+    adminPort: 3008,
+    enginePort: 10008,
+    description: 'Landscaping, grounds maintenance, irrigation, tree services',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'HVAC / Mechanical',
+    type: 'Mechanical',
+    adminPort: 3009,
+    enginePort: 10009,
+    description: 'HVAC installation, mechanical systems, climate control',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Plumbing Services',
+    type: 'Plumbing',
+    adminPort: 3010,
+    enginePort: 10010,
+    description: 'Plumbing installation, repairs, water systems maintenance',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Custodial & Janitorial Services',
+    type: 'Custodial',
+    adminPort: 3011,
+    enginePort: 10011,
+    description: 'Janitorial services, cleaning, sanitation, custodial contracts',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'IT & Technical Services',
+    type: 'IT',
+    adminPort: 3012,
+    enginePort: 10012,
+    description: 'IT support, technical services, network infrastructure',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Environmental & Waste Services',
+    type: 'Environmental',
+    adminPort: 3013,
+    enginePort: 10013,
+    description: 'Waste management, recycling, environmental remediation',
+    live: false,
+    status: 'offline'
+  },
+  {
+    name: 'Painting & Surface Coatings',
+    type: 'Painting',
+    adminPort: 3014,
+    enginePort: 10014,
+    description: 'Painting services, surface coatings, finishing work',
+    live: false,
+    status: 'offline'
+  }
+];
+
+/**
+ * Check system status for all tradeline servers
+ */
+async function getSystemStatus() {
+  const tradelines = [
+    { name: 'Security', port: 3054, enginePort: 10054 },
+    { name: 'LowVoltage', port: 3007, enginePort: 10007 },
+    // Add more tradelines as they come online
+  ];
+
+  const status = {
+    patcher: { status: 'online', version: VERSION },
+    database: { status: 'checking' },
+    tradelines: []
+  };
+
+  // Check database
+  try {
+    const { error } = await supabase.from('security_discovered_opportunities').select('id').limit(1);
+    status.database.status = error ? 'error' : 'online';
+  } catch (e) {
+    status.database.status = 'offline';
+  }
+
+  // For now, just return configured tradelines
+  // In future, actually ping each server
+  status.tradelines = tradelines.map(t => ({
+    name: t.name,
+    adminPort: t.port,
+    enginePort: t.enginePort,
+    status: 'unknown' // Would ping in production
+  }));
+
+  return status;
+}
+
+// Routes
+
+// Auth middleware
+function requireAuth(req, res, next) {
+  if (req.session && req.session.user) {
+    return next();
+  }
+  res.redirect('/?error=Please login to continue');
+}
+
+// Login page (main entry point)
+app.get('/', async (req, res) => {
+  // If already logged in, redirect to gateway
+  if (req.session && req.session.user) {
+    return res.redirect('/gateway');
+  }
+
+  const systemStatus = await getSystemStatus();
+
+  res.render('login', {
+    version: VERSION,
+    buildDate: BUILD_DATE,
+    systemStatus,
+    error: req.query.error || null
+  });
+});
+
+// Gateway page (after login)
+app.get('/gateway', requireAuth, async (req, res) => {
+  // Build tradeline list with URLs
+  const host = process.env.NODE_ENV === 'production' ? PRODUCTION_HOST : SERVER_HOST;
+  const tradelines = TRADELINES.map(t => ({
+    ...t,
+    url: `http://${host}:${t.adminPort}/`
+  }));
+
+  res.render('gateway', {
+    version: VERSION,
+    buildDate: BUILD_DATE,
+    user: req.session.user,
+    tradelines
+  });
+});
+
+// Login POST
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.redirect('/?error=Email and password required');
+  }
+
+  try {
+    // Get user from database
+    const { data: user, error } = await supabase
+      .from('nextbid_users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (error || !user) {
+      return res.redirect('/?error=Invalid credentials');
+    }
+
+    // Check password
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword) {
+      return res.redirect('/?error=Invalid credentials');
+    }
+
+    // Check if user is active
+    if (!user.is_active) {
+      return res.redirect('/?error=Account disabled');
+    }
+
+    // Set session
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    };
+
+    // Update last login
+    await supabase
+      .from('nextbid_users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', user.id);
+
+    // Redirect to gateway
+    res.redirect('/gateway');
+
+  } catch (err) {
+    console.error('Login error:', err);
+    res.redirect('/?error=Login failed');
+  }
+});
+
+// Logout
+app.get('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    res.redirect('/');
+  });
+});
+
+// API: Verify session (for other services to check)
+app.get('/api/verify-session', (req, res) => {
+  if (req.session && req.session.user) {
+    res.json({
+      valid: true,
+      user: {
+        id: req.session.user.id,
+        email: req.session.user.email,
+        name: req.session.user.name,
+        role: req.session.user.role
+      }
+    });
+  } else {
+    res.json({ valid: false });
+  }
+});
+
+// API: System status
+app.get('/api/status', async (req, res) => {
+  const status = await getSystemStatus();
+  res.json(status);
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   ███╗   ██╗███████╗██╗  ██╗████████╗██████╗ ██╗██████╗   ║
+║   ████╗  ██║██╔════╝╚██╗██╔╝╚══██╔══╝██╔══██╗██║██╔══██╗  ║
+║   ██╔██╗ ██║█████╗   ╚███╔╝    ██║   ██████╔╝██║██║  ██║  ║
+║   ██║╚██╗██║██╔══╝   ██╔██╗    ██║   ██╔══██╗██║██║  ██║  ║
+║   ██║ ╚████║███████╗██╔╝ ██╗   ██║   ██████╔╝██║██████╔╝  ║
+║   ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═════╝ ╚═╝╚═════╝   ║
+║                                                           ║
+║   PATCHER v${VERSION}                                         ║
+║   Login Gateway & Update System                           ║
+║                                                           ║
+╠═══════════════════════════════════════════════════════════╣
+║   Server running on port ${PORT}                             ║
+║   http://localhost:${PORT}                                   ║
+╚═══════════════════════════════════════════════════════════╝
+  `);
+});

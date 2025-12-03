@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NextBid Engine - Login</title>
+  <link rel="stylesheet" href="/css/patcher.css">
+</head>
+<body>
+  <div class="patcher-container">
+    <!-- Header with logo -->
+    <div class="patcher-header">
+      <div class="logo">
+        <img src="/images/nextbid-logo.png" alt="NextBid" class="logo-image">
+        <div class="logo-text">
+          <h1>NEXTBID ENGINE</h1>
+          <span class="tagline">Government Contracting Opportunity Discovery</span>
+        </div>
+      </div>
+      <div class="version-info">
+        v<%= version %> | Build <%= buildDate %>
+      </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="patcher-main">
+      <!-- Left side: System Status -->
+      <div class="status-panel">
+        <h2>System Status</h2>
+
+        <div class="status-section">
+          <h3>Core Services</h3>
+          <div class="status-item">
+            <span class="status-label">Patcher</span>
+            <span class="status-indicator <%= systemStatus.patcher.status %>">
+              <%= systemStatus.patcher.status.toUpperCase() %>
+            </span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Database</span>
+            <span class="status-indicator <%= systemStatus.database.status %>">
+              <%= systemStatus.database.status.toUpperCase() %>
+            </span>
+          </div>
+        </div>
+
+        <div class="status-section">
+          <h3>Tradeline Servers</h3>
+          <% systemStatus.tradelines.forEach(function(t) { %>
+          <div class="status-item">
+            <span class="status-label"><%= t.name %></span>
+            <span class="status-indicator <%= t.status %>">
+              Port <%= t.adminPort %>
+            </span>
+          </div>
+          <% }); %>
+        </div>
+
+        <div class="status-section updates">
+          <h3>Recent Updates</h3>
+          <div class="update-item">
+            <span class="update-date">Dec 2025</span>
+            <span class="update-text">PlanetBids discovery now live</span>
+          </div>
+          <div class="update-item">
+            <span class="update-date">Dec 2025</span>
+            <span class="update-text">10 portal configurations added</span>
+          </div>
+          <div class="update-item">
+            <span class="update-date">Nov 2025</span>
+            <span class="update-text">CalProcure SOW extraction improved</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Login Form -->
+      <div class="login-panel">
+        <div class="login-box">
+          <h2>Developer Access</h2>
+          <p class="login-subtitle">Sign in to access the Master Dashboard</p>
+
+          <% if (error) { %>
+          <div class="error-message">
+            <%= error %>
+          </div>
+          <% } %>
+
+          <form action="/login" method="POST" class="login-form">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="developer@mbe.com"
+                required
+                autocomplete="email"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter password"
+                required
+                autocomplete="current-password"
+              >
+            </div>
+
+            <button type="submit" class="login-button">
+              <span class="button-text">LOGIN</span>
+              <span class="button-icon">→</span>
+            </button>
+          </form>
+
+          <div class="login-footer">
+            <p>Authorized MBE personnel only</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="patcher-footer">
+      <div class="footer-left">
+        NextBid Engine &copy; 2025 MBE Solutions
+      </div>
+      <div class="footer-right">
+        <span class="connection-status online">Connected</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-refresh status every 30 seconds
+    setInterval(async () => {
+      try {
+        const res = await fetch('/api/status');
+        const status = await res.json();
+        // Could update DOM here with new status
+        console.log('Status check:', status);
+      } catch (e) {
+        console.error('Status check failed:', e);
+      }
+    }, 30000);
+  </script>
+</body>
+</html>

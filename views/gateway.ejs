@@ -279,7 +279,7 @@
         <h3>Live Tradeline Servers</h3>
         <div class="servers-grid">
           <% tradelines.filter(t => t.live).forEach(function(t) { %>
-          <a href="<%= t.url %>" class="server-card">
+          <a href="<%= t.url %>" class="server-card" target="_blank">
             <div class="server-header">
               <div>
                 <div class="server-name"><%= t.name %></div>

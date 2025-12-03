@@ -302,10 +302,12 @@ app.get('/', async (req, res) => {
 
 // Gateway page (after login)
 app.get('/gateway', requireAuth, async (req, res) => {
-  // Build tradeline list with proxy URLs (through authenticated gateway)
+  // Build tradeline list with direct URLs for now
+  // TODO: Switch to proxy URLs when tradeline admins support BASE_URL prefix
+  const host = process.env.NODE_ENV === 'production' ? PRODUCTION_HOST : SERVER_HOST;
   const tradelines = TRADELINES.map(t => ({
     ...t,
-    url: `/admin/${t.slug}/`  // Proxy route through patcher
+    url: t.live ? `http://${host}:${t.adminPort}/` : `/admin/${t.slug}/`
   }));
 
   res.render('gateway', {

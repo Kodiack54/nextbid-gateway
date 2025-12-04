@@ -219,6 +219,47 @@
       transform: translateX(5px);
     }
 
+    /* Environment Buttons */
+    .server-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .env-btn {
+      flex: 1;
+      padding: 8px 15px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+
+    .env-btn.local {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-blue);
+      border: 1px solid var(--accent-blue);
+    }
+
+    .env-btn.local:hover {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    .env-btn.online {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+      border: 1px solid var(--accent-green);
+    }
+
+    .env-btn.online:hover {
+      background: var(--accent-green);
+      color: #fff;
+    }
+
     /* Coming Soon Section */
     .coming-soon {
       margin-top: 40px;
@@ -279,7 +320,7 @@
         <h3>Live Tradeline Servers</h3>
         <div class="servers-grid">
           <% tradelines.filter(t => t.live).forEach(function(t) { %>
-          <a href="<%= t.url %>" class="server-card" target="_blank">
+          <div class="server-card">
             <div class="server-header">
               <div>
                 <div class="server-name"><%= t.name %></div>
@@ -297,11 +338,12 @@
                 <span class="value">:<%= t.enginePort %></span>
               </div>
             </div>
-            <div class="server-desc">
-              <%= t.description %>
-              <span class="server-arrow">→</span>
+            <div class="server-desc"><%= t.description %></div>
+            <div class="server-buttons">
+              <a href="http://localhost:<%= t.adminPort %>/" class="env-btn local" target="_blank">Local</a>
+              <a href="http://64.23.151.201:<%= t.adminPort %>/" class="env-btn online" target="_blank">Online</a>
             </div>
-          </a>
+          </div>
           <% }); %>
         </div>
       </div>

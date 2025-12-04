@@ -188,6 +188,18 @@ const TRADELINES = [
     description: 'Painting services, surface coatings, finishing work',
     live: false,
     status: 'offline'
+  },
+  {
+    slug: 'dev',
+    name: 'DEV - Development Environment',
+    type: 'Development',
+    adminPort: 3099,  // Will be proxied to dev droplet
+    enginePort: 10099,
+    description: 'Development and testing environment',
+    live: true,
+    status: 'online',
+    // External host for dev droplet (different IP)
+    externalHost: process.env.DEV_DROPLET_HOST || null
   }
 ];
 
@@ -252,8 +264,12 @@ function requireAuthForProxy(req, res, next) {
 TRADELINES.forEach(tradeline => {
   const proxyPath = `/admin/${tradeline.slug}`;
 
+  // Determine target host - use externalHost if configured, otherwise localhost
+  const targetHost = tradeline.externalHost || 'localhost';
+  const targetUrl = `http://${targetHost}:${tradeline.adminPort}`;
+
   app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({
-    target: `http://localhost:${tradeline.adminPort}`,
+    target: targetUrl,
     changeOrigin: true,
     pathRewrite: {
       [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
@@ -270,13 +286,13 @@ TRADELINES.forEach(tradeline => {
       res.status(502).send(`
         <h1>Tradeline Offline</h1>
         <p>The ${tradeline.name} server is not responding.</p>
-        <p>Port: ${tradeline.adminPort}</p>
+        <p>Target: ${targetUrl}</p>
         <a href="/gateway">Back to Gateway</a>
       `);
     }
   }));
 
-  console.log(`  Proxy configured: /admin/${tradeline.slug} -> localhost:${tradeline.adminPort}`);
+  console.log(`  Proxy configured: /admin/${tradeline.slug} -> ${targetUrl}`);
 });
 
 //=============================================================================

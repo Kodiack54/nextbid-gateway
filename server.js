@@ -378,8 +378,10 @@ function requireAuthForProxy(req, res, next) {
 TRADELINES.forEach(tradeline => {
   const proxyPath = `/admin/${tradeline.slug}`;
 
-  // Determine target host - use host field if configured, otherwise localhost
-  const targetHost = tradeline.host || 'localhost';
+  // Use localhost for same-server apps (Engine droplet), external IP for other droplets
+  // This allows the proxy to bypass the firewall for local services
+  const isLocalService = tradeline.host === DROPLETS.engine || !tradeline.host;
+  const targetHost = isLocalService ? 'localhost' : tradeline.host;
   const targetUrl = `http://${targetHost}:${tradeline.adminPort}`;
 
   app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({

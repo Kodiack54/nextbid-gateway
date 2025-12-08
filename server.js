@@ -435,10 +435,9 @@ app.get('/', async (req, res) => {
 app.get('/gateway', requireAuth, async (req, res) => {
   // Build tradeline list with direct URLs for now
   // TODO: Switch to proxy URLs when tradeline admins support BASE_URL prefix
-  const host = process.env.NODE_ENV === 'production' ? PRODUCTION_HOST : SERVER_HOST;
   const tradelines = TRADELINES.map(t => ({
     ...t,
-    url: t.live ? `http://${host}:${t.adminPort}/` : `/admin/${t.slug}/`
+    url: t.live && t.host ? `http://${t.host}:${t.adminPort}/` : `/admin/${t.slug}/`
   }));
 
   res.render('gateway', {

@@ -1,4 +1,4 @@
-/* NextBid Patcher - Game Launcher Style */
+/* NextBid Gateway - Game Launcher Style */
 
 * {
   margin: 0;
@@ -33,7 +33,7 @@ body {
     radial-gradient(ellipse at bottom, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
 }
 
-.patcher-container {
+.gateway-container {
   width: 100%;
   max-width: 1000px;
   margin: 20px;
@@ -45,7 +45,7 @@ body {
 }
 
 /* Header */
-.patcher-header {
+.gateway-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -90,7 +90,7 @@ body {
 }
 
 /* Main Content */
-.patcher-main {
+.gateway-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 450px;
@@ -322,7 +322,7 @@ body {
 }
 
 /* Footer */
-.patcher-footer {
+.gateway-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -360,7 +360,7 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .patcher-main {
+  .gateway-main {
     grid-template-columns: 1fr;
   }
 

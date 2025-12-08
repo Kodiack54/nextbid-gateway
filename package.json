@@ -1,7 +1,7 @@
 {
-  "name": "nextbid-patcher",
+  "name": "nextbid-gateway",
   "version": "1.0.0",
-  "description": "NextBid Patcher - Login gateway and update system for NextBid Engine",
+  "description": "NextBid Gateway - Authentication gateway for NextBid Engine services",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

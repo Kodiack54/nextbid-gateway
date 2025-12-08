@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NextBid Engine - Login</title>
   <link rel="icon" type="image/png" href="/images/nextbid-logo.png">
-  <link rel="stylesheet" href="/css/patcher.css">
+  <link rel="stylesheet" href="/css/gateway.css">
 </head>
 <body>
-  <div class="patcher-container">
+  <div class="gateway-container">
     <!-- Header with logo -->
-    <div class="patcher-header">
+    <div class="gateway-header">
       <div class="logo">
         <img src="/images/nextbid-logo.png" alt="NextBid" class="logo-image">
         <div class="logo-text">
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Main content area -->
-    <div class="patcher-main">
+    <div class="gateway-main">
       <!-- Left side: System Status -->
       <div class="status-panel">
         <h2>System Status</h2>
@@ -32,7 +32,7 @@
         <div class="status-section">
           <h3>Core Services</h3>
           <div class="status-item">
-            <span class="status-label">Patcher</span>
+            <span class="status-label">Gateway</span>
             <span class="status-indicator <%= systemStatus.patcher.status %>">
               <%= systemStatus.patcher.status.toUpperCase() %>
             </span>
@@ -125,7 +125,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="patcher-footer">
+    <div class="gateway-footer">
       <div class="footer-left">
         NextBid Engine &copy; 2025 MBE Solutions
       </div>

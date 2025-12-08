@@ -1,4 +1,4 @@
-# NextBid Patcher - Login Gateway
+# NextBid Gateway - Authentication Gateway
 
 Central authentication gateway for all NextBid infrastructure.
 
@@ -6,7 +6,7 @@ Central authentication gateway for all NextBid infrastructure.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                     PATCHER (Login Gateway)                              │
+│                     GATEWAY (Authentication Hub)                         │
 │                     Port 3001 - Authentication Hub                       │
 │                     All backend access goes through here                 │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -38,15 +38,15 @@ Central authentication gateway for all NextBid infrastructure.
 
 | Droplet | IP Address | Purpose | PM2 Apps |
 |---------|------------|---------|----------|
-| **Engine** | `64.23.151.201` | Production tradelines + Patcher | lowvoltage, nextbid-patcher |
+| **Engine** | `64.23.151.201` | Production tradelines + Gateway | lowvoltage, nextbid-gateway |
 | **Dev** | `161.35.229.220` | Development & NextBid Sources | nextbid-sources |
 | **Portal** | TBD | Client-facing portal | TBD |
 
 ### 1. ENGINE Droplet (Production)
 - **IP:** `64.23.151.201`
 - **SSH:** `ssh root@64.23.151.201`
-- **Purpose:** Production tradeline admin panels + Patcher gateway
-- **Path:** `/var/www/nextbid-patcher`
+- **Purpose:** Production tradeline admin panels + Gateway
+- **Path:** `/var/www/nextbid-gateway`
 - **Contains:** All tradeline discovery engines, admin UIs, workers
 - **Access:** `/admin/{tradeline}` (e.g., `/admin/security`, `/admin/lowvoltage`)
 - **Gateway URL:** `http://64.23.151.201:3001/gateway`
@@ -70,7 +70,7 @@ Central authentication gateway for all NextBid infrastructure.
 ## SSH Access from PowerShell
 
 ```powershell
-# Connect to Engine droplet (has Patcher + tradelines)
+# Connect to Engine droplet (has Gateway + tradelines)
 ssh root@64.23.151.201
 
 # Connect to Dev droplet (has NextBid Sources)
@@ -81,16 +81,16 @@ ssh root@161.35.229.220
 
 ## Deployment Commands
 
-### Deploy Patcher (Engine Droplet)
+### Deploy Gateway (Engine Droplet)
 ```bash
 # SSH into engine droplet
 ssh root@64.23.151.201
 
 # Pull and restart
-cd /var/www/nextbid-patcher && git pull && pm2 restart nextbid-patcher
+cd /var/www/nextbid-gateway && git pull && pm2 restart nextbid-gateway
 
 # Check logs
-pm2 logs nextbid-patcher
+pm2 logs nextbid-gateway
 ```
 
 ### Deploy NextBid Sources (Dev Droplet)
@@ -119,11 +119,11 @@ pm2 monit                   # Real-time monitoring
 
 ## Authentication Flow
 
-1. User navigates to patcher login (`:3001`)
+1. User navigates to gateway login (`:3001`)
 2. User authenticates with email/password (validated against `nextbid_users` table)
 3. Session created, user redirected to Gateway
 4. Gateway shows available droplets/tradelines based on user role
-5. User clicks to access backend - request proxied through patcher with auth headers
+5. User clicks to access backend - request proxied through gateway with auth headers
 
 ## Environment Variables
 
@@ -156,7 +156,7 @@ PORTAL_DROPLET_HOST=<portal-droplet-ip>
 1. **Develop locally** on Windows dev machine
 2. **Push to Dev Droplet** for testing in real environment
 3. **Test thoroughly** - both Engine features and Portal features can be tested on Dev
-4. **Push to Production** - either Engine droplet or Portal droplet via patcher
+4. **Push to Production** - either Engine droplet or Portal droplet via gateway
 
 ## Tradelines (Engine Droplet)
 
@@ -187,7 +187,7 @@ node server.js
 
 ## Security
 
-- All backend access requires authentication through Patcher
+- All backend access requires authentication through Gateway
 - Sessions stored server-side with secure cookies
 - API keys for inter-service communication
 - User roles control access to different tradelines/droplets

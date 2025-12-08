@@ -1,13 +1,12 @@
 /**
- * NextBid Patcher - Login Gateway
+ * NextBid Gateway - Authentication Gateway
  *
  * Port 3001 - Authentication gateway for all NextBid Engine services
  *
  * Features:
  * - Login screen with system status display
  * - Session management for authenticated users
- * - Redirects to Master KPI Dashboard (port 3000) on successful login
- * - Patch/update status display (future)
+ * - Gateway to all tradeline admin panels and dev projects
  */
 
 require('dotenv').config();
@@ -35,7 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Session configuration
 // Note: secure: false until HTTPS/SSL is configured
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'nextbid-patcher-secret-change-in-production',
+  secret: process.env.SESSION_SECRET || 'nextbid-gateway-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {

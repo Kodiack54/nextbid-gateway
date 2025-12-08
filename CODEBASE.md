@@ -1,4 +1,4 @@
-# NextBid Patcher - Codebase Reference
+# NextBid Gateway - Codebase Reference
 
 ---
 
@@ -15,10 +15,10 @@
 ## Folder Structure
 
 ```
-nextbid-patcher/
+nextbid-gateway/
 ├── public/                         # Static assets
 │   ├── css/
-│   │   └── patcher.css             # Main stylesheet (371 lines)
+│   │   └── gateway.css             # Main stylesheet (371 lines)
 │   └── images/                     # Image assets
 │
 ├── scripts/                        # Utility scripts
@@ -32,6 +32,7 @@ nextbid-patcher/
 ├── .env.example                    # Environment template
 ├── .gitignore                      # Git ignore rules
 ├── CODEBASE.md                     # This file
+├── GATEWAY.md                      # System architecture document
 ├── Jurnal-log.md                   # Development journal
 ├── package.json                    # NPM dependencies
 ├── package-lock.json               # NPM lock file

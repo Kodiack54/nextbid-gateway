@@ -1,17 +1,17 @@
-# NextBid Patcher - System Architecture & Design Document
+# NextBid Gateway & Patcher - System Architecture & Design Document
 
 ---
 
 ## Executive Summary
 
-The **NextBid Patcher** is the central nervous system of the NextBid ecosystem. It coordinates deployment, configuration, and content distribution across all NextBid components:
+The **NextBid Gateway** is the authentication portal for all NextBid services. The **NextBid Patcher** (future) will be the central nervous system that coordinates deployment, configuration, and content distribution across all NextBid components:
 
 - **NextBid Engine** - Core business logic and AI pipelines
 - **Tradeline Servers** - Specialized processing nodes per trade
 - **NextBid Portal** - User-facing dashboards and credential vaults
 - **NextTech** - Field/SOP application for execution teams
 
-The Patcher ensures every component runs the correct code version, receives the correct configuration, and operates with the correct content - all while maintaining independence and scalability.
+The Gateway provides authenticated access to all services. The Patcher (when built) will ensure every component runs the correct code version, receives the correct configuration, and operates with the correct content - all while maintaining independence and scalability.
 
 ---
 

@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" href="/images/nextbid-logo.png">
   <link rel="stylesheet" href="/css/patcher.css">
   <style>
-    /* Full page layout */
     body {
       display: block;
       align-items: unset;
@@ -24,9 +23,8 @@
       flex-direction: column;
     }
 
-    /* Gateway-specific styles */
     .gateway-main {
-      padding: 40px 60px;
+      padding: 30px 50px;
       flex: 1;
     }
 
@@ -34,31 +32,31 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
       border-bottom: 1px solid var(--border-color);
     }
 
     .welcome-text h2 {
-      font-size: 24px;
+      font-size: 22px;
       color: var(--text-primary);
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .welcome-text p {
       color: var(--text-secondary);
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .user-info {
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 12px;
     }
 
     .user-badge {
       background: var(--bg-input);
-      padding: 8px 15px;
+      padding: 6px 12px;
       border-radius: 6px;
       border: 1px solid var(--border-color);
     }
@@ -69,20 +67,20 @@
     }
 
     .user-badge .role {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--accent-blue);
       text-transform: uppercase;
-      margin-left: 10px;
+      margin-left: 8px;
     }
 
     .logout-btn {
       background: transparent;
       border: 1px solid var(--border-color);
       color: var(--text-secondary);
-      padding: 8px 15px;
+      padding: 6px 12px;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       transition: all 0.2s ease;
       text-decoration: none;
     }
@@ -92,99 +90,137 @@
       color: var(--accent-red);
     }
 
-    /* Server Grid */
-    .servers-section h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-secondary);
-      margin-bottom: 20px;
+    /* Tabs */
+    .tabs-container {
+      margin-bottom: 25px;
     }
 
-    .servers-grid {
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .tab {
+      padding: 12px 30px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+    }
+
+    .tab .count {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-blue);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .tab.active .count {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Project Grid */
+    .projects-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 20px;
     }
 
-    .server-card {
+    .project-card {
       background: var(--bg-input);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 20px;
       transition: all 0.2s ease;
-      cursor: pointer;
-      text-decoration: none;
-      display: block;
     }
 
-    .server-card:hover {
+    .project-card:hover {
       border-color: var(--accent-blue);
       transform: translateY(-2px);
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
     }
 
-    .server-card.offline {
+    .project-card.offline {
       opacity: 0.5;
-      cursor: not-allowed;
     }
 
-    .server-card.offline:hover {
-      transform: none;
-      border-color: var(--border-color);
-    }
-
-    .server-header {
+    .project-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
-    .server-name {
-      font-size: 18px;
+    .project-name {
+      font-size: 16px;
       font-weight: 600;
       color: var(--text-primary);
     }
 
-    .server-type {
+    .project-type {
       font-size: 11px;
       color: var(--text-muted);
       text-transform: uppercase;
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
-    .server-status {
-      font-size: 10px;
+    .project-status {
+      font-size: 9px;
       font-weight: 600;
-      padding: 4px 10px;
+      padding: 3px 8px;
       border-radius: 4px;
       text-transform: uppercase;
     }
 
-    .server-status.online {
+    .project-status.online {
       background: rgba(16, 185, 129, 0.2);
       color: var(--accent-green);
     }
 
-    .server-status.offline {
+    .project-status.offline {
       background: rgba(239, 68, 68, 0.2);
       color: var(--accent-red);
     }
 
-    .server-status.unknown {
+    .project-status.pending {
       background: rgba(245, 158, 11, 0.2);
       color: var(--accent-yellow);
     }
 
-    .server-ports {
+    .project-ports {
       display: flex;
-      gap: 15px;
-      margin-bottom: 15px;
+      gap: 12px;
+      margin-bottom: 12px;
     }
 
     .port-info {
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .port-info .label {
@@ -197,38 +233,24 @@
       background: rgba(0,0,0,0.3);
       padding: 2px 6px;
       border-radius: 3px;
-      margin-left: 5px;
+      margin-left: 4px;
     }
 
-    .server-desc {
-      font-size: 13px;
+    .project-desc {
+      font-size: 12px;
       color: var(--text-secondary);
-      line-height: 1.5;
+      line-height: 1.4;
+      margin-bottom: 15px;
     }
 
-    .server-arrow {
-      float: right;
-      font-size: 20px;
-      color: var(--accent-blue);
-      opacity: 0;
-      transition: all 0.2s ease;
-    }
-
-    .server-card:hover .server-arrow {
-      opacity: 1;
-      transform: translateX(5px);
-    }
-
-    /* Environment Buttons */
-    .server-buttons {
+    .project-buttons {
       display: flex;
       gap: 10px;
-      margin-top: 15px;
     }
 
     .env-btn {
       flex: 1;
-      padding: 8px 15px;
+      padding: 10px 15px;
       border-radius: 6px;
       text-align: center;
       font-size: 12px;
@@ -239,9 +261,9 @@
     }
 
     .env-btn.local {
-      background: rgba(59, 130, 246, 0.2);
+      background: rgba(59, 130, 246, 0.15);
       color: var(--accent-blue);
-      border: 1px solid var(--accent-blue);
+      border: 1px solid rgba(59, 130, 246, 0.3);
     }
 
     .env-btn.local:hover {
@@ -250,9 +272,9 @@
     }
 
     .env-btn.online {
-      background: rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.15);
       color: var(--accent-green);
-      border: 1px solid var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
     .env-btn.online:hover {
@@ -260,25 +282,39 @@
       color: #fff;
     }
 
-    /* Coming Soon Section */
-    .coming-soon {
-      margin-top: 40px;
-      padding-top: 30px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .coming-soon h3 {
-      color: var(--text-muted);
-    }
-
-    .coming-soon .servers-grid .server-card {
+    .env-btn.disabled {
       opacity: 0.4;
-      cursor: default;
+      cursor: not-allowed;
+      pointer-events: none;
     }
 
-    .coming-soon .servers-grid .server-card:hover {
-      transform: none;
-      border-color: var(--border-color);
+    /* Section Headers */
+    .section-header {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin: 30px 0 15px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .section-header:first-child {
+      margin-top: 0;
+    }
+
+    /* Color coding for different project types */
+    .project-card[data-category="sources"] {
+      border-left: 3px solid #ef4444;
+    }
+    .project-card[data-category="dev"] {
+      border-left: 3px solid #f59e0b;
+    }
+    .project-card[data-category="tradeline"] {
+      border-left: 3px solid #10b981;
+    }
+    .project-card[data-category="portal"] {
+      border-left: 3px solid #8b5cf6;
     }
   </style>
 </head>
@@ -290,7 +326,7 @@
         <img src="/images/nextbid-logo.png" alt="NextBid" class="logo-image">
         <div class="logo-text">
           <h1>NEXTBID ENGINE</h1>
-          <span class="tagline">Tradeline Gateway</span>
+          <span class="tagline">Gateway</span>
         </div>
       </div>
       <div class="version-info">
@@ -304,7 +340,7 @@
       <div class="welcome-header">
         <div class="welcome-text">
           <h2>Welcome back, <%= user.name.split(' ')[0] %></h2>
-          <p>Select a tradeline server to manage</p>
+          <p>Select a project to manage</p>
         </div>
         <div class="user-info">
           <div class="user-badge">
@@ -315,20 +351,70 @@
         </div>
       </div>
 
-      <!-- Live Servers -->
-      <div class="servers-section">
-        <h3>Live Tradeline Servers</h3>
-        <div class="servers-grid">
-          <% tradelines.filter(t => t.live).forEach(function(t) { %>
-          <div class="server-card">
-            <div class="server-header">
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <div class="tab active" data-tab="tradelines">
+            NextBid Tradeline Servers
+            <span class="count"><%= tradelines.filter(t => t.category === 'tradeline').length %></span>
+          </div>
+          <div class="tab" data-tab="dev">
+            NextBid Development Servers
+            <span class="count"><%= tradelines.filter(t => t.category === 'dev').length %></span>
+          </div>
+          <div class="tab" data-tab="portals">
+            NextBid Portal Servers
+            <span class="count"><%= tradelines.filter(t => t.category === 'portal').length %></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Tradeline Servers -->
+      <div class="tab-content active" id="tradelines">
+        <div class="section-header">Live Servers</div>
+        <div class="projects-grid">
+          <% tradelines.filter(t => t.category === 'tradeline' && t.live).forEach(function(t) { %>
+          <div class="project-card" data-category="tradeline">
+            <div class="project-header">
               <div>
-                <div class="server-name"><%= t.name %></div>
-                <div class="server-type"><%= t.type %> Tradeline</div>
+                <div class="project-name"><%= t.name %></div>
+                <div class="project-type"><%= t.type %></div>
               </div>
-              <span class="server-status <%= t.status %>"><%= t.status %></span>
+              <span class="project-status online">ONLINE</span>
             </div>
-            <div class="server-ports">
+            <div class="project-ports">
+              <div class="port-info">
+                <span class="label">Admin:</span>
+                <span class="value">:<%= t.adminPort %></span>
+              </div>
+              <% if (t.enginePort) { %>
+              <div class="port-info">
+                <span class="label">Engine:</span>
+                <span class="value">:<%= t.enginePort %></span>
+              </div>
+              <% } %>
+            </div>
+            <div class="project-desc"><%= t.description %></div>
+            <div class="project-buttons">
+              <a href="/admin/<%= t.slug %>/" class="env-btn online">Online</a>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+
+        <% if (tradelines.filter(t => t.category === 'tradeline' && !t.live).length > 0) { %>
+        <div class="section-header">Coming Soon</div>
+        <div class="projects-grid">
+          <% tradelines.filter(t => t.category === 'tradeline' && !t.live).forEach(function(t) { %>
+          <div class="project-card offline" data-category="tradeline">
+            <div class="project-header">
+              <div>
+                <div class="project-name"><%= t.name %></div>
+                <div class="project-type"><%= t.type %></div>
+              </div>
+              <span class="project-status pending">PENDING</span>
+            </div>
+            <div class="project-ports">
               <div class="port-info">
                 <span class="label">Admin:</span>
                 <span class="value">:<%= t.adminPort %></span>
@@ -338,40 +424,73 @@
                 <span class="value">:<%= t.enginePort %></span>
               </div>
             </div>
-            <div class="server-desc"><%= t.description %></div>
-            <div class="server-buttons">
-              <a href="http://localhost:<%= t.adminPort %>/" class="env-btn local" target="_blank">Local</a>
-              <a href="http://64.23.151.201:<%= t.adminPort %>/" class="env-btn online" target="_blank">Online</a>
+            <div class="project-desc"><%= t.description %></div>
+            <div class="project-buttons">
+              <span class="env-btn online disabled">Offline</span>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+        <% } %>
+      </div>
+
+      <!-- Tab Content: Dev Projects -->
+      <div class="tab-content" id="dev">
+        <div class="projects-grid">
+          <% tradelines.filter(t => t.category === 'dev').forEach(function(t) { %>
+          <div class="project-card <%= t.live ? '' : 'offline' %>" data-category="<%= t.subcategory || 'dev' %>">
+            <div class="project-header">
+              <div>
+                <div class="project-name"><%= t.name %></div>
+                <div class="project-type"><%= t.type %></div>
+              </div>
+              <span class="project-status <%= t.live ? 'online' : 'offline' %>"><%= t.live ? 'ONLINE' : 'OFFLINE' %></span>
+            </div>
+            <div class="project-ports">
+              <div class="port-info">
+                <span class="label">Admin:</span>
+                <span class="value">:<%= t.adminPort %></span>
+              </div>
+              <% if (t.enginePort) { %>
+              <div class="port-info">
+                <span class="label">Engine:</span>
+                <span class="value">:<%= t.enginePort %></span>
+              </div>
+              <% } %>
+            </div>
+            <div class="project-desc"><%= t.description %></div>
+            <div class="project-buttons">
+              <a href="http://localhost:<%= t.adminPort %>/" class="env-btn local <%= t.live ? '' : 'disabled' %>" target="_blank">Local</a>
+              <a href="http://<%= t.host %>:<%= t.adminPort %>/" class="env-btn online <%= t.live ? '' : 'disabled' %>" target="_blank">Online</a>
             </div>
           </div>
           <% }); %>
         </div>
       </div>
 
-      <!-- Coming Soon Servers -->
-      <div class="coming-soon">
-        <h3>Coming Soon</h3>
-        <div class="servers-grid">
-          <% tradelines.filter(t => !t.live).forEach(function(t) { %>
-          <div class="server-card">
-            <div class="server-header">
+      <!-- Tab Content: NextBid Portals -->
+      <div class="tab-content" id="portals">
+        <div class="projects-grid">
+          <% tradelines.filter(t => t.category === 'portal').forEach(function(t) { %>
+          <div class="project-card <%= t.live ? '' : 'offline' %>" data-category="portal">
+            <div class="project-header">
               <div>
-                <div class="server-name"><%= t.name %></div>
-                <div class="server-type"><%= t.type %> Tradeline</div>
+                <div class="project-name"><%= t.name %></div>
+                <div class="project-type"><%= t.type %></div>
               </div>
-              <span class="server-status offline">PENDING</span>
+              <span class="project-status <%= t.live ? 'online' : 'pending' %>"><%= t.live ? 'ONLINE' : 'PENDING' %></span>
             </div>
-            <div class="server-ports">
+            <div class="project-ports">
               <div class="port-info">
-                <span class="label">Admin:</span>
+                <span class="label">Port:</span>
                 <span class="value">:<%= t.adminPort %></span>
               </div>
-              <div class="port-info">
-                <span class="label">Engine:</span>
-                <span class="value">:<%= t.enginePort %></span>
-              </div>
             </div>
-            <div class="server-desc"><%= t.description %></div>
+            <div class="project-desc"><%= t.description %></div>
+            <div class="project-buttons">
+              <a href="http://localhost:<%= t.adminPort %>/" class="env-btn local <%= t.live ? '' : 'disabled' %>" target="_blank">Local</a>
+              <a href="http://<%= t.host %>:<%= t.adminPort %>/" class="env-btn online <%= t.live ? '' : 'disabled' %>" target="_blank">Online</a>
+            </div>
           </div>
           <% }); %>
         </div>
@@ -388,5 +507,20 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active from all tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Add active to clicked tab
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+  </script>
 </body>
 </html>

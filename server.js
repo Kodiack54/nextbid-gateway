@@ -55,17 +55,28 @@ const BUILD_DATE = new Date().toISOString().split('T')[0];
 
 // Server host configuration
 const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
-const PRODUCTION_HOST = '64.23.151.201';
 
-// Tradeline configurations with slugs for proxy routing
+// Droplet IPs
+const DROPLETS = {
+  engine: process.env.ENGINE_DROPLET_HOST || '64.23.151.201',
+  dev: process.env.DEV_DROPLET_HOST || '161.35.229.220',
+  portal: process.env.PORTAL_DROPLET_HOST || null  // Not yet deployed
+};
+
+// Project configurations organized by category (each category = different droplet)
 const TRADELINES = [
+  // ========================================
+  // TRADELINE SERVERS (Engine Droplet - 64.23.151.201)
+  // ========================================
   {
     slug: 'security',
-    name: 'Fire/Life Safety & Security Systems',
-    type: 'Security',
+    name: 'Fire/Life Safety & Security',
+    type: 'Security Tradeline',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3002,
     enginePort: 10002,
-    description: 'Fire alarm systems, life safety, security guard services, patrol contracts',
+    description: 'Fire alarm, life safety, security guard services, patrol contracts',
     live: false,
     status: 'offline'
   },
@@ -73,6 +84,8 @@ const TRADELINES = [
     slug: 'business',
     name: 'Administrative & Business Services',
     type: 'Business',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3003,
     enginePort: 10003,
     description: 'Administrative support, staffing, professional business services',
@@ -83,6 +96,8 @@ const TRADELINES = [
     slug: 'facilities',
     name: 'Facility Maintenance & Punch-Out',
     type: 'Facilities',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3004,
     enginePort: 10004,
     description: 'General facility maintenance, repairs, punch-out services',
@@ -93,6 +108,8 @@ const TRADELINES = [
     slug: 'electrical',
     name: 'Electrical Construction',
     type: 'Construction',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3005,
     enginePort: 10005,
     description: 'Electrical construction, wiring, power systems installation',
@@ -103,6 +120,8 @@ const TRADELINES = [
     slug: 'logistics',
     name: 'Courier / Delivery / Logistics',
     type: 'Logistics',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3006,
     enginePort: 10006,
     description: 'Courier services, package delivery, logistics and transportation',
@@ -113,6 +132,8 @@ const TRADELINES = [
     slug: 'lowvoltage',
     name: 'Low Voltage Technology',
     type: 'Technology',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3007,
     enginePort: 10007,
     description: 'Low voltage systems, CCTV, access control, structured cabling',
@@ -123,6 +144,8 @@ const TRADELINES = [
     slug: 'landscaping',
     name: 'Landscaping & Grounds Maintenance',
     type: 'Grounds',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3008,
     enginePort: 10008,
     description: 'Landscaping, grounds maintenance, irrigation, tree services',
@@ -133,6 +156,8 @@ const TRADELINES = [
     slug: 'hvac',
     name: 'HVAC / Mechanical',
     type: 'Mechanical',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3009,
     enginePort: 10009,
     description: 'HVAC installation, mechanical systems, climate control',
@@ -143,6 +168,8 @@ const TRADELINES = [
     slug: 'plumbing',
     name: 'Plumbing Services',
     type: 'Plumbing',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3010,
     enginePort: 10010,
     description: 'Plumbing installation, repairs, water systems maintenance',
@@ -153,6 +180,8 @@ const TRADELINES = [
     slug: 'custodial',
     name: 'Custodial & Janitorial Services',
     type: 'Custodial',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3011,
     enginePort: 10011,
     description: 'Janitorial services, cleaning, sanitation, custodial contracts',
@@ -163,6 +192,8 @@ const TRADELINES = [
     slug: 'it',
     name: 'IT & Technical Services',
     type: 'IT',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3012,
     enginePort: 10012,
     description: 'IT support, technical services, network infrastructure',
@@ -173,6 +204,8 @@ const TRADELINES = [
     slug: 'environmental',
     name: 'Environmental & Waste Services',
     type: 'Environmental',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3013,
     enginePort: 10013,
     description: 'Waste management, recycling, environmental remediation',
@@ -183,23 +216,105 @@ const TRADELINES = [
     slug: 'painting',
     name: 'Painting & Surface Coatings',
     type: 'Painting',
+    category: 'tradeline',
+    host: DROPLETS.engine,
     adminPort: 3014,
     enginePort: 10014,
     description: 'Painting services, surface coatings, finishing work',
     live: false,
     status: 'offline'
   },
+
+  // ========================================
+  // DEV PROJECTS (Dev Droplet - 161.35.229.220)
+  // ========================================
   {
     slug: 'dev',
-    name: 'DEV - Development Environment',
+    name: 'NextBid Dev',
     type: 'Development',
-    adminPort: 3099,  // Will be proxied to dev droplet
+    category: 'dev',
+    host: DROPLETS.dev,
+    adminPort: 3099,
     enginePort: 10099,
-    description: 'Development and testing environment',
+    description: 'Development and testing environment for new features',
+    live: false,
+    status: 'offline'
+  },
+  {
+    slug: 'sources',
+    name: 'NextBid Sources',
+    type: 'Source Discovery',
+    category: 'dev',
+    host: DROPLETS.dev,
+    adminPort: 3098,
+    enginePort: null,
+    description: 'Source discovery pipeline - find and onboard new procurement portals',
     live: true,
-    status: 'online',
-    // External host for dev droplet (different IP)
-    externalHost: process.env.DEV_DROPLET_HOST || null
+    status: 'online'
+  },
+  {
+    slug: 'portal',
+    name: 'NextBid Portal',
+    type: 'Client Portal',
+    category: 'dev',
+    host: DROPLETS.dev,
+    adminPort: 3100,
+    enginePort: null,
+    description: 'Client-facing portal for opportunity management',
+    live: false,
+    status: 'offline'
+  },
+  {
+    slug: 'tech',
+    name: 'NextBid Tech',
+    type: 'Technology',
+    category: 'dev',
+    host: DROPLETS.dev,
+    adminPort: 3101,
+    enginePort: null,
+    description: 'Technology stack and infrastructure management',
+    live: false,
+    status: 'offline'
+  },
+  {
+    slug: 'app',
+    name: 'NextBid App',
+    type: 'Mobile/Web App',
+    category: 'dev',
+    host: DROPLETS.dev,
+    adminPort: 3102,
+    enginePort: null,
+    description: 'NextBid mobile and web application',
+    live: false,
+    status: 'offline'
+  },
+
+  // ========================================
+  // NEXTBID PORTALS (Portal Droplet - TBD)
+  // ========================================
+  {
+    slug: 'keystone',
+    name: 'Keystone Portal',
+    type: 'Client Portal',
+    category: 'portal',
+    host: DROPLETS.portal,
+    adminPort: 4000,
+    enginePort: null,
+    description: 'Client-facing CRM for Keystone Advantage',
+    live: false,
+    status: 'offline'
+  },
+  {
+    slug: 'bidder-portal',
+    name: 'Bidder Portal',
+    type: 'Client Portal',
+    category: 'portal',
+    host: DROPLETS.portal,
+    adminPort: 4001,
+    enginePort: null,
+    description: 'Public-facing bidder portal for opportunity search',
+    live: false,
+    status: 'offline'
   }
 ];
 
@@ -264,8 +379,8 @@ function requireAuthForProxy(req, res, next) {
 TRADELINES.forEach(tradeline => {
   const proxyPath = `/admin/${tradeline.slug}`;
 
-  // Determine target host - use externalHost if configured, otherwise localhost
-  const targetHost = tradeline.externalHost || 'localhost';
+  // Determine target host - use host field if configured, otherwise localhost
+  const targetHost = tradeline.host || 'localhost';
   const targetUrl = `http://${targetHost}:${tradeline.adminPort}`;
 
   app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({

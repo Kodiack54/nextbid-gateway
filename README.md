@@ -36,24 +36,86 @@ Central authentication gateway for all NextBid infrastructure.
 
 ## Droplets Overview
 
+| Droplet | IP Address | Purpose | PM2 Apps |
+|---------|------------|---------|----------|
+| **Engine** | `64.23.151.201` | Production tradelines + Patcher | lowvoltage, nextbid-patcher |
+| **Dev** | `161.35.229.220` | Development & NextBid Sources | nextbid-sources |
+| **Portal** | TBD | Client-facing portal | TBD |
+
 ### 1. ENGINE Droplet (Production)
-- **Purpose:** Production tradeline admin panels
+- **IP:** `64.23.151.201`
+- **SSH:** `ssh root@64.23.151.201`
+- **Purpose:** Production tradeline admin panels + Patcher gateway
+- **Path:** `/var/www/nextbid-patcher`
 - **Contains:** All tradeline discovery engines, admin UIs, workers
 - **Access:** `/admin/{tradeline}` (e.g., `/admin/security`, `/admin/lowvoltage`)
+- **Gateway URL:** `http://64.23.151.201:3001/gateway`
 
 ### 2. DEVELOPMENT Droplet
+- **IP:** `161.35.229.220`
+- **SSH:** `ssh root@161.35.229.220`
 - **Purpose:** Development and testing environment
-- **Contains:** Test versions of BOTH Engine and Portal code
-- **Access:** `/admin/dev`
-- **Workflow:**
-  - Develop new features here
-  - Test thoroughly
-  - Push updates to Engine OR Portal via patcher
+- **Path:** `/var/www/nextbid-sources`
+- **Contains:** NextBid Sources (source discovery pipeline)
+- **Access:** `http://161.35.229.220:3098/`
 
 ### 3. PORTAL Droplet (Production)
+- **IP:** TBD (not yet deployed)
 - **Purpose:** Client-facing portal
 - **Contains:** Customer portal UI and backend
 - **Access:** `/admin/portal`
+
+---
+
+## SSH Access from PowerShell
+
+```powershell
+# Connect to Engine droplet (has Patcher + tradelines)
+ssh root@64.23.151.201
+
+# Connect to Dev droplet (has NextBid Sources)
+ssh root@161.35.229.220
+```
+
+---
+
+## Deployment Commands
+
+### Deploy Patcher (Engine Droplet)
+```bash
+# SSH into engine droplet
+ssh root@64.23.151.201
+
+# Pull and restart
+cd /var/www/nextbid-patcher && git pull && pm2 restart nextbid-patcher
+
+# Check logs
+pm2 logs nextbid-patcher
+```
+
+### Deploy NextBid Sources (Dev Droplet)
+```bash
+# SSH into dev droplet
+ssh root@161.35.229.220
+
+# Pull and restart
+cd /var/www/nextbid-sources && git pull && pm2 restart nextbid-sources
+
+# Check logs
+pm2 logs nextbid-sources
+```
+
+### PM2 Useful Commands
+```bash
+pm2 list                    # Show all processes
+pm2 logs <app-name>         # View logs
+pm2 restart <app-name>      # Restart app
+pm2 stop <app-name>         # Stop app
+pm2 start <app-name>        # Start app
+pm2 monit                   # Real-time monitoring
+```
+
+---
 
 ## Authentication Flow
 

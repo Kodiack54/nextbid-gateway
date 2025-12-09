@@ -391,6 +391,7 @@ TRADELINES.forEach(tradeline => {
       [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
     },
     onProxyReq: (proxyReq, req, res) => {
+      console.log(`[Proxy] ${req.method} ${req.originalUrl} -> ${targetUrl}${req.url}`);
       // Add user info header so tradeline knows who's accessing
       if (req.session && req.session.user) {
         proxyReq.setHeader('X-NextBid-User', req.session.user.email);

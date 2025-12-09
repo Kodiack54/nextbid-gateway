@@ -15,7 +15,7 @@ const session = require('express-session');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const { createClient } = require('@supabase/supabase-js');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -387,6 +387,7 @@ TRADELINES.forEach(tradeline => {
   app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
+    selfHandleResponse: true,
     pathRewrite: {
       [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
     },
@@ -397,6 +398,27 @@ TRADELINES.forEach(tradeline => {
         proxyReq.setHeader('X-NextBid-Role', req.session.user.role);
       }
     },
+    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      const contentType = proxyRes.headers['content-type'] || '';
+
+      // Only rewrite HTML responses
+      if (contentType.includes('text/html')) {
+        let body = responseBuffer.toString('utf8');
+
+        // Rewrite absolute paths to include the proxy prefix
+        body = body
+          .replace(/href="\//g, `href="${proxyPath}/`)
+          .replace(/href='\//g, `href='${proxyPath}/`)
+          .replace(/src="\//g, `src="${proxyPath}/`)
+          .replace(/src='\//g, `src='${proxyPath}/`)
+          .replace(/action="\//g, `action="${proxyPath}/`)
+          .replace(/action='\//g, `action='${proxyPath}/`);
+
+        return body;
+      }
+
+      return responseBuffer;
+    }),
     onError: (err, req, res) => {
       console.error(`Proxy error for ${tradeline.slug}:`, err.message);
       res.status(502).send(`

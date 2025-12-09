@@ -365,6 +365,7 @@ function requireAuth(req, res, next) {
 function requireAuthForProxy(req, res, next) {
   console.log(`[Auth] ${req.method} ${req.originalUrl} - session: ${req.session?.user?.email || 'none'}`);
   if (req.session && req.session.user) {
+    console.log(`[Auth] Passed - forwarding to proxy`);
     return next();
   }
   res.status(401).send('Unauthorized - Please login at /');
@@ -385,14 +386,17 @@ TRADELINES.forEach(tradeline => {
   const targetHost = isLocalService ? 'localhost' : tradeline.host;
   const targetUrl = `http://${targetHost}:${tradeline.adminPort}`;
 
-  app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({
+  app.use(proxyPath, requireAuthForProxy, (req, res, next) => {
+    console.log(`[ProxyHandler] Proxying ${req.originalUrl} to ${targetUrl}`);
+    next();
+  }, createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
     pathRewrite: {
       [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
     },
     onProxyReq: (proxyReq, req, res) => {
-      console.log(`[Proxy] ${req.method} ${req.originalUrl} -> ${targetUrl}${req.url}`);
+      console.log(`[Proxy] Forwarding ${req.method} -> ${targetUrl}${req.url}`);
       // Add user info header so tradeline knows who's accessing
       if (req.session && req.session.user) {
         proxyReq.setHeader('X-NextBid-User', req.session.user.email);

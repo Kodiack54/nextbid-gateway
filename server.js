@@ -387,7 +387,6 @@ TRADELINES.forEach(tradeline => {
   app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
-    selfHandleResponse: true, // We'll handle the response to rewrite URLs
     pathRewrite: {
       [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
     },
@@ -396,44 +395,6 @@ TRADELINES.forEach(tradeline => {
       if (req.session && req.session.user) {
         proxyReq.setHeader('X-NextBid-User', req.session.user.email);
         proxyReq.setHeader('X-NextBid-Role', req.session.user.role);
-      }
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      const contentType = proxyRes.headers['content-type'] || '';
-
-      // Copy status and headers
-      res.status(proxyRes.statusCode);
-      Object.keys(proxyRes.headers).forEach(key => {
-        // Skip content-length since we might modify the body
-        if (key.toLowerCase() !== 'content-length') {
-          res.setHeader(key, proxyRes.headers[key]);
-        }
-      });
-
-      // Only rewrite HTML responses
-      if (contentType.includes('text/html')) {
-        let body = '';
-        proxyRes.on('data', chunk => { body += chunk; });
-        proxyRes.on('end', () => {
-          // Rewrite absolute paths to include the proxy prefix
-          const rewritten = body
-            .replace(/href="\//g, `href="${proxyPath}/`)
-            .replace(/href='\//g, `href='${proxyPath}/`)
-            .replace(/src="\//g, `src="${proxyPath}/`)
-            .replace(/src='\//g, `src='${proxyPath}/`)
-            .replace(/action="\//g, `action="${proxyPath}/`)
-            .replace(/action='\//g, `action='${proxyPath}/`)
-            .replace(/url\(\//g, `url(${proxyPath}/`)
-            .replace(/window\.location\s*=\s*"\//g, `window.location="${proxyPath}/`)
-            .replace(/window\.location\s*=\s*'\//g, `window.location='${proxyPath}/`)
-            .replace(/window\.location\.href\s*=\s*"\//g, `window.location.href="${proxyPath}/`)
-            .replace(/window\.location\.href\s*=\s*'\//g, `window.location.href='${proxyPath}/`);
-
-          res.send(rewritten);
-        });
-      } else {
-        // For non-HTML (JS, CSS, images), pipe through directly
-        proxyRes.pipe(res);
       }
     },
     onError: (err, req, res) => {

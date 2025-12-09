@@ -363,6 +363,7 @@ function requireAuth(req, res, next) {
 
 // Auth middleware for proxy (returns 401 instead of redirect)
 function requireAuthForProxy(req, res, next) {
+  console.log(`[Auth] ${req.method} ${req.originalUrl} - session: ${req.session?.user?.email || 'none'}`);
   if (req.session && req.session.user) {
     return next();
   }

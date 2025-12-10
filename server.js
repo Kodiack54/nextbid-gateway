@@ -85,7 +85,7 @@ function requireAuth(req, res, next) {
  * Check if user is an admin (engine access)
  */
 function requireAdmin(req, res, next) {
-  if (req.session && req.session.user && req.session.user.domain === 'engine') {
+  if (req.session && req.session.user && (req.session.user.domain === 'engine' || req.session.user.role === 'superadmin')) {
     return next();
   }
 
@@ -170,7 +170,7 @@ app.post('/login', async (req, res) => {
     console.log(`[Auth] User logged in: ${user.email} (${user.domain})`);
 
     // Redirect based on domain
-    if (user.domain === 'engine') {
+    if (user.domain === 'engine' || user.role === 'superadmin') {
       res.redirect('/dashboard');
     } else {
       res.redirect('/opportunities');

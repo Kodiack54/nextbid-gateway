@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opportunities - NextBid</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6fa;
+      color: #333;
+    }
+
+    .navbar {
+      background: #1a1a2e;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar h1 { color: #fff; font-size: 20px; }
+    .navbar h1 span { color: #e94560; }
+    .navbar a { color: #aaa; text-decoration: none; margin-left: 20px; }
+    .navbar a:hover { color: #fff; }
+    .navbar a.active { color: #e94560; }
+
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .page-header h2 {
+      color: #1a1a2e;
+      font-size: 24px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 12px;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .filter-btn.active {
+      background: #e94560;
+      color: #fff;
+      border-color: #e94560;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .search-bar input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .search-bar select {
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
+    }
+
+    .opportunities-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .opportunity-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px;
+      transition: box-shadow 0.2s;
+    }
+
+    .opportunity-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .opportunity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .opportunity-title {
+      color: #1a1a2e;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .opportunity-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .opportunity-title a:hover {
+      color: #e94560;
+    }
+
+    .opportunity-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .opportunity-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge.new { background: #e3f2fd; color: #1565c0; }
+    .badge.active { background: #e8f5e9; color: #2e7d32; }
+    .badge.closing { background: #fff3e0; color: #e65100; }
+    .badge.closed { background: #fce4ec; color: #c2185b; }
+
+    .opportunity-description {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .opportunity-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .opportunity-tags {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tag {
+      background: #f0f5ff;
+      color: #1a1a2e;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .opportunity-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #e94560;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: #c93d54;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #666;
+      border: 1px solid #e0e0e0;
+    }
+
+    .btn-outline:hover {
+      border-color: #e94560;
+      color: #e94560;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: #fff;
+      border-radius: 12px;
+    }
+
+    .empty-state h3 {
+      color: #1a1a2e;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .pagination button {
+      padding: 8px 16px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .pagination button.active {
+      background: #e94560;
+      color: #fff;
+      border-color: #e94560;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <h1>Next<span>Bid</span></h1>
+    <div>
+      <a href="/opportunities" class="active">Opportunities</a>
+      <a href="/bids">My Bids</a>
+      <a href="/profile">Profile</a>
+      <a href="/logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h2>Opportunities</h2>
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="new">New Today</button>
+        <button class="filter-btn" data-filter="closing">Closing Soon</button>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search opportunities...">
+      <select id="sourceFilter">
+        <option value="">All Sources</option>
+        <option value="samgov">SAM.gov</option>
+        <option value="publicpurchase">Public Purchase</option>
+        <option value="planetbids">PlanetBids</option>
+        <option value="bidnet">BidNet Direct</option>
+      </select>
+      <select id="tradelineFilter">
+        <option value="">All Tradelines</option>
+      </select>
+    </div>
+
+    <div class="opportunities-list" id="opportunitiesList">
+      <div class="loading">Loading opportunities...</div>
+    </div>
+
+    <div class="pagination" id="pagination" style="display: none;">
+      <button>&larr; Previous</button>
+      <button class="active">1</button>
+      <button>2</button>
+      <button>3</button>
+      <button>Next &rarr;</button>
+    </div>
+  </div>
+
+  <script>
+    // Placeholder for API calls
+    const opportunities = [];
+    let loading = true;
+
+    async function loadOpportunities() {
+      // TODO: Fetch from API
+      // const res = await fetch('/api/opportunities');
+      // const data = await res.json();
+
+      // For now, show empty state
+      const list = document.getElementById('opportunitiesList');
+      list.innerHTML = `
+        <div class="empty-state">
+          <h3>No opportunities found yet</h3>
+          <p>We're scanning your bid sources. New opportunities will appear here as they're discovered.</p>
+          <a href="/profile" class="btn btn-primary">Add Source Credentials</a>
+        </div>
+      `;
+    }
+
+    function renderOpportunity(opp) {
+      return `
+        <div class="opportunity-card">
+          <div class="opportunity-header">
+            <div>
+              <h3 class="opportunity-title">
+                <a href="/opportunity/${opp.id}">${opp.title}</a>
+              </h3>
+              <div class="opportunity-meta">
+                <span>${opp.agency}</span>
+                <span>Due: ${opp.dueDate}</span>
+                <span>Est: ${opp.estimatedValue || 'N/A'}</span>
+              </div>
+            </div>
+            <span class="badge ${opp.status}">${opp.status}</span>
+          </div>
+          <p class="opportunity-description">${opp.description || 'No description available'}</p>
+          <div class="opportunity-footer">
+            <div class="opportunity-tags">
+              <span class="tag">${opp.tradeline}</span>
+              <span class="tag">${opp.source}</span>
+            </div>
+            <div class="opportunity-actions">
+              <button class="btn btn-outline" onclick="saveOpportunity('${opp.id}')">Save</button>
+              <button class="btn btn-primary" onclick="markInterested('${opp.id}')">I'm Interested</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveOpportunity(id) {
+      console.log('Saving opportunity:', id);
+      // TODO: Implement save
+    }
+
+    function markInterested(id) {
+      console.log('Marking interested:', id);
+      // TODO: Implement mark interested - moves to My Bids
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // TODO: Apply filter
+      });
+    });
+
+    // Search
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      // TODO: Implement search
+    });
+
+    // Load on page load
+    loadOpportunities();
+  </script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - NextBid Portal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #333;
+    }
+
+    .navbar {
+      background: linear-gradient(135deg, #111827 0%, #1e3a5f 100%);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar h1 { color: #fff; font-size: 20px; font-weight: 700; }
+    
+    .navbar a { color: #9ca3af; text-decoration: none; margin-left: 20px; }
+    .navbar a:hover { color: #fff; }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      color: #111827;
+      font-size: 18px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .profile-info h3 { font-size: 24px; color: #1a1a2e; }
+    .profile-info p { color: #666; margin-top: 4px; }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge.standard { background: #dbeafe; color: #1d4ed8; }
+    .badge.premium { background: #f3e8ff; color: #7c3aed; }
+    .badge.enterprise { background: #dcfce7; color: #16a34a; }
+
+    .tradelines-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .tradeline-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .tradeline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      margin-right: 10px;
+    }
+
+    .credentials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .credential-item {
+      padding: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+    }
+
+    .credential-item.configured { border-color: #10b981; background: #f0fdf4; }
+    .credential-item.not-configured { border-color: #ffc107; }
+
+    .credential-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .credential-header h4 { font-size: 14px; }
+    .credential-status {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .credential-status.active { background: #d4edda; color: #155724; }
+    .credential-status.missing { background: #fff3cd; color: #856404; }
+
+    .credential-form { display: none; }
+    .credential-form.visible { display: block; }
+
+    .credential-form input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn:hover { background: #1d4ed8; }
+    .btn-outline {
+      background: transparent;
+      color: #2563eb;
+      border: 1px solid #2563eb;
+    }
+    .btn-outline:hover { background: #eff6ff; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div style="display:flex;align-items:center;gap:12px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;">🎯</div><h1>NextBid</h1></div>
+    <div>
+      <a href="/opportunities">Opportunities</a>
+      <a href="/bids">My Bids</a>
+      <a href="/profile">Profile</a>
+      <a href="/logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="card">
+      <div class="profile-header">
+        <div class="profile-info">
+          <h3><%= user.name %></h3>
+          <p><%= company.name %></p>
+          <p style="font-size: 12px; color: #999;"><%= user.email %></p>
+        </div>
+        <span class="badge <%= company.tier || 'standard' %>"><%= (company.tier || 'standard').toUpperCase() %></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Your Tradelines</h2>
+      <div class="tradelines-grid">
+        <% if (company.nextbid_company_tradelines && company.nextbid_company_tradelines.length > 0) { %>
+          <% company.nextbid_company_tradelines.forEach(t => { %>
+            <div class="tradeline-item">
+              <div class="tradeline-dot"></div>
+              <span><%= t.tradeline %></span>
+            </div>
+          <% }); %>
+        <% } else { %>
+          <p style="color: #999;">No tradelines configured</p>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Source Credentials</h2>
+      <p style="color: #666; margin-bottom: 16px; font-size: 14px;">
+        Add your credentials for bid sources. We use these to find opportunities for you.
+      </p>
+
+      <div class="credentials-grid">
+        <!-- SAM.gov API -->
+        <div class="credential-item <%= credentials.find(c => c.source === 'samgov')?.is_configured ? 'configured' : 'not-configured' %>">
+          <div class="credential-header">
+            <h4>SAM.gov API</h4>
+            <span class="credential-status <%= credentials.find(c => c.source === 'samgov')?.is_configured ? 'active' : 'missing' %>">
+              <%= credentials.find(c => c.source === 'samgov')?.is_configured ? 'Configured' : 'Not Set' %>
+            </span>
+          </div>
+          <button class="btn btn-outline" onclick="toggleCredForm('samgov')">
+            <%= credentials.find(c => c.source === 'samgov')?.is_configured ? 'Update' : 'Add' %>
+          </button>
+          <div class="credential-form" id="form-samgov">
+            <input type="text" placeholder="API Key" id="samgov-apikey">
+            <button class="btn" onclick="saveCredential('samgov')">Save</button>
+          </div>
+        </div>
+
+        <!-- Public Purchase -->
+        <div class="credential-item <%= credentials.find(c => c.source === 'publicpurchase')?.is_configured ? 'configured' : 'not-configured' %>">
+          <div class="credential-header">
+            <h4>Public Purchase</h4>
+            <span class="credential-status <%= credentials.find(c => c.source === 'publicpurchase')?.is_configured ? 'active' : 'missing' %>">
+              <%= credentials.find(c => c.source === 'publicpurchase')?.is_configured ? 'Configured' : 'Not Set' %>
+            </span>
+          </div>
+          <button class="btn btn-outline" onclick="toggleCredForm('publicpurchase')">
+            <%= credentials.find(c => c.source === 'publicpurchase')?.is_configured ? 'Update' : 'Add' %>
+          </button>
+          <div class="credential-form" id="form-publicpurchase">
+            <input type="text" placeholder="Username" id="publicpurchase-username">
+            <input type="password" placeholder="Password" id="publicpurchase-password">
+            <button class="btn" onclick="saveCredential('publicpurchase')">Save</button>
+          </div>
+        </div>
+
+        <!-- BidNet -->
+        <div class="credential-item <%= credentials.find(c => c.source === 'bidnet')?.is_configured ? 'configured' : 'not-configured' %>">
+          <div class="credential-header">
+            <h4>BidNet Direct</h4>
+            <span class="credential-status <%= credentials.find(c => c.source === 'bidnet')?.is_configured ? 'active' : 'missing' %>">
+              <%= credentials.find(c => c.source === 'bidnet')?.is_configured ? 'Configured' : 'Not Set' %>
+            </span>
+          </div>
+          <button class="btn btn-outline" onclick="toggleCredForm('bidnet')">
+            <%= credentials.find(c => c.source === 'bidnet')?.is_configured ? 'Update' : 'Add' %>
+          </button>
+          <div class="credential-form" id="form-bidnet">
+            <input type="text" placeholder="Username" id="bidnet-username">
+            <input type="password" placeholder="Password" id="bidnet-password">
+            <button class="btn" onclick="saveCredential('bidnet')">Save</button>
+          </div>
+        </div>
+
+        <!-- PlanetBids -->
+        <div class="credential-item <%= credentials.find(c => c.source === 'planetbids')?.is_configured ? 'configured' : 'not-configured' %>">
+          <div class="credential-header">
+            <h4>PlanetBids</h4>
+            <span class="credential-status <%= credentials.find(c => c.source === 'planetbids')?.is_configured ? 'active' : 'missing' %>">
+              <%= credentials.find(c => c.source === 'planetbids')?.is_configured ? 'Configured' : 'Not Set' %>
+            </span>
+          </div>
+          <button class="btn btn-outline" onclick="toggleCredForm('planetbids')">
+            <%= credentials.find(c => c.source === 'planetbids')?.is_configured ? 'Update' : 'Add' %>
+          </button>
+          <div class="credential-form" id="form-planetbids">
+            <input type="text" placeholder="Username/Email" id="planetbids-username">
+            <input type="password" placeholder="Password" id="planetbids-password">
+            <button class="btn" onclick="saveCredential('planetbids')">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleCredForm(source) {
+      const form = document.getElementById('form-' + source);
+      form.classList.toggle('visible');
+    }
+
+    async function saveCredential(source) {
+      const form = document.getElementById('form-' + source);
+      const inputs = form.querySelectorAll('input');
+
+      const data = { source };
+      inputs.forEach(input => {
+        if (input.id.includes('apikey')) data.api_key = input.value;
+        if (input.id.includes('username')) data.username = input.value;
+        if (input.id.includes('password')) data.password = input.value;
+      });
+
+      try {
+        const res = await fetch('/profile/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+          alert('Credentials saved!');
+          location.reload();
+        } else {
+          alert('Failed to save credentials');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

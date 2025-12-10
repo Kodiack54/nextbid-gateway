@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to NextBid - Getting Started</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #111827 0%, #1e3a5f 50%, #111827 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    .onboarding-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .progress-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .progress-bar::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      z-index: 0;
+    }
+
+    .progress-bar .progress-fill {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      height: 4px;
+      background: #8b5cf6;
+      transition: width 0.5s ease;
+      z-index: 1;
+    }
+
+    .step-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .step-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .step-circle.active {
+      background: #8b5cf6;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    }
+
+    .step-circle.completed {
+      background: #10b981;
+    }
+
+    .step-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .step-label.active {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #8b5cf6, #6366f1);
+    }
+
+    .step-content {
+      display: none;
+    }
+
+    .step-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .step-header .icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 36px;
+    }
+
+    .step-header h2 {
+      color: #111827;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .step-header p {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 30px 0;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      background: #eff6ff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      flex-shrink: 0;
+    }
+
+    .feature-content h4 {
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .feature-content p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .highlight-box {
+      background: #f5f3ff;
+      border: 2px solid #8b5cf6;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .highlight-box h4 {
+      color: #8b5cf6;
+      margin-bottom: 8px;
+    }
+
+    .action-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #666;
+      border: 2px solid #e0e0e0;
+    }
+
+    .btn-secondary:hover {
+      border-color: #8b5cf6;
+      color: #8b5cf6;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Step-specific styles */
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .source-card {
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .source-card:hover {
+      border-color: #8b5cf6;
+    }
+
+    .source-card h4 {
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .source-card p {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .tradeline-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 20px 0;
+    }
+
+    .tradeline-tag {
+      background: #eff6ff;
+      color: #1a1a2e;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .skip-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .skip-link a {
+      color: #999;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .skip-link a:hover {
+      color: #8b5cf6;
+    }
+
+    /* Credential form styles */
+    .credentials-forms {
+      margin-top: 20px;
+    }
+
+    .credential-section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+
+    .credential-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .credential-header-row h4 {
+      color: #1a1a2e;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+
+    .credential-header-row p {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-switch .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 28px;
+    }
+
+    .toggle-switch .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .slider {
+      background-color: #10b981;
+    }
+
+    .toggle-switch input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+
+    .credential-fields {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .credential-fields input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-bottom: 8px;
+      transition: border-color 0.2s;
+    }
+
+    .credential-fields input:focus {
+      outline: none;
+      border-color: #8b5cf6;
+    }
+
+    .credential-fields .help-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .credential-fields .help-text a {
+      color: #8b5cf6;
+    }
+
+    .credential-saved {
+      display: inline-flex;
+      align-items: center;
+      color: #10b981;
+      font-size: 13px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding-container">
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: <%= (currentStep / 5) * 100 %>%"></div>
+      <div class="step-indicator">
+        <div class="step-circle <%= currentStep >= 1 ? (currentStep > 1 ? 'completed' : 'active') : '' %>">
+          <%= currentStep > 1 ? '&#10003;' : '1' %>
+        </div>
+        <span class="step-label <%= currentStep === 1 ? 'active' : '' %>">Welcome</span>
+      </div>
+      <div class="step-indicator">
+        <div class="step-circle <%= currentStep >= 2 ? (currentStep > 2 ? 'completed' : 'active') : '' %>">
+          <%= currentStep > 2 ? '&#10003;' : '2' %>
+        </div>
+        <span class="step-label <%= currentStep === 2 ? 'active' : '' %>">Tradelines</span>
+      </div>
+      <div class="step-indicator">
+        <div class="step-circle <%= currentStep >= 3 ? (currentStep > 3 ? 'completed' : 'active') : '' %>">
+          <%= currentStep > 3 ? '&#10003;' : '3' %>
+        </div>
+        <span class="step-label <%= currentStep === 3 ? 'active' : '' %>">Credentials</span>
+      </div>
+      <div class="step-indicator">
+        <div class="step-circle <%= currentStep >= 4 ? (currentStep > 4 ? 'completed' : 'active') : '' %>">
+          <%= currentStep > 4 ? '&#10003;' : '4' %>
+        </div>
+        <span class="step-label <%= currentStep === 4 ? 'active' : '' %>">Discovery</span>
+      </div>
+      <div class="step-indicator">
+        <div class="step-circle <%= currentStep >= 5 ? 'active' : '' %>">5</div>
+        <span class="step-label <%= currentStep === 5 ? 'active' : '' %>">Ready!</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- Step 1: Welcome -->
+      <div class="step-content <%= currentStep === 1 ? 'active' : '' %>" id="step1">
+        <div class="step-header">
+          <div class="icon">&#128075;</div>
+          <h2>Welcome to NextBid, <%= user.name %>!</h2>
+          <p>Let's get you set up to find government contract opportunities</p>
+        </div>
+
+        <ul class="feature-list">
+          <li>
+            <div class="feature-icon">&#128269;</div>
+            <div class="feature-content">
+              <h4>Automated Discovery</h4>
+              <p>We scan 20+ bid sources every few hours to find opportunities in your tradelines</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon">&#129302;</div>
+            <div class="feature-content">
+              <h4>AI-Powered Analysis</h4>
+              <p>Our AI reads RFPs and extracts the scope of work so you can quickly evaluate bids</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon">&#128200;</div>
+            <div class="feature-content">
+              <h4>Track Everything</h4>
+              <p>Monitor opportunities through their lifecycle - from discovery to award</p>
+            </div>
+          </li>
+        </ul>
+
+        <div class="highlight-box">
+          <h4>This tour takes about 2 minutes</h4>
+          <p>We'll show you where everything is and help you configure your account for the best results.</p>
+        </div>
+      </div>
+
+      <!-- Step 2: Tradelines -->
+      <div class="step-content <%= currentStep === 2 ? 'active' : '' %>" id="step2">
+        <div class="step-header">
+          <div class="icon">&#128736;</div>
+          <h2>Your Tradelines</h2>
+          <p>These are the categories of work we'll find opportunities for</p>
+        </div>
+
+        <p style="color: #666; margin-bottom: 20px;">
+          You selected these tradelines when you registered. You can change them anytime in your profile.
+        </p>
+
+        <div class="tradeline-preview">
+          <% if (company.nextbid_company_tradelines && company.nextbid_company_tradelines.length > 0) { %>
+            <% company.nextbid_company_tradelines.forEach(t => { %>
+              <span class="tradeline-tag"><%= t.tradeline %></span>
+            <% }); %>
+          <% } else { %>
+            <span class="tradeline-tag">No tradelines selected</span>
+          <% } %>
+        </div>
+
+        <div class="highlight-box">
+          <h4>How Tradelines Work</h4>
+          <p>Each tradeline has specific keywords and NAICS codes that match government contracts. When we find an opportunity that matches your tradelines, it shows up in your Opportunities list.</p>
+        </div>
+
+        <ul class="feature-list">
+          <li>
+            <div class="feature-icon">&#127919;</div>
+            <div class="feature-content">
+              <h4>Targeted Search</h4>
+              <p>We only show you bids that match your trades - no more sifting through irrelevant listings</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon">&#128279;</div>
+            <div class="feature-content">
+              <h4>Profile &rarr; Tradelines</h4>
+              <p>Go to your Profile page to add or remove tradelines (based on your plan)</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Step 3: Credentials -->
+      <div class="step-content <%= currentStep === 3 ? 'active' : '' %>" id="step3">
+        <div class="step-header">
+          <div class="icon">&#128272;</div>
+          <h2>Add Your Source Credentials</h2>
+          <p>Enter your login details for bid sources you already use</p>
+        </div>
+
+        <p style="color: #666; margin-bottom: 20px;">
+          We'll use these credentials to search bid sources on your behalf. You can skip any sources you don't have accounts for.
+        </p>
+
+        <div class="credentials-forms">
+          <!-- SAM.gov -->
+          <div class="credential-section">
+            <div class="credential-header-row">
+              <div>
+                <h4>SAM.gov API Key</h4>
+                <p>For federal contract opportunities</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-samgov" onchange="toggleCredSection('samgov')">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="credential-fields" id="fields-samgov" style="display: none;">
+              <input type="text" id="samgov-apikey" placeholder="Your SAM.gov API Key">
+              <p class="help-text">Get your API key at <a href="https://sam.gov" target="_blank">sam.gov</a></p>
+            </div>
+          </div>
+
+          <!-- Public Purchase -->
+          <div class="credential-section">
+            <div class="credential-header-row">
+              <div>
+                <h4>Public Purchase</h4>
+                <p>State & local government bids</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-publicpurchase" onchange="toggleCredSection('publicpurchase')">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="credential-fields" id="fields-publicpurchase" style="display: none;">
+              <input type="text" id="publicpurchase-username" placeholder="Email / Username">
+              <input type="password" id="publicpurchase-password" placeholder="Password">
+            </div>
+          </div>
+
+          <!-- PlanetBids -->
+          <div class="credential-section">
+            <div class="credential-header-row">
+              <div>
+                <h4>PlanetBids</h4>
+                <p>City and county bid portals</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-planetbids" onchange="toggleCredSection('planetbids')">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="credential-fields" id="fields-planetbids" style="display: none;">
+              <input type="text" id="planetbids-username" placeholder="Email / Username">
+              <input type="password" id="planetbids-password" placeholder="Password">
+            </div>
+          </div>
+
+          <!-- BidNet -->
+          <div class="credential-section">
+            <div class="credential-header-row">
+              <div>
+                <h4>BidNet Direct</h4>
+                <p>Multi-agency bid network</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-bidnet" onchange="toggleCredSection('bidnet')">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="credential-fields" id="fields-bidnet" style="display: none;">
+              <input type="text" id="bidnet-username" placeholder="Email / Username">
+              <input type="password" id="bidnet-password" placeholder="Password">
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-box" style="margin-top: 20px;">
+          <h4>Your Credentials are Secure</h4>
+          <p>We encrypt all credentials before storing. They're only used to search for opportunities matching your tradelines.</p>
+        </div>
+
+        <p class="skip-note" style="color: #999; font-size: 13px; margin-top: 16px; text-align: center;">
+          Don't have accounts yet? No problem - you can add credentials later in your Profile.
+        </p>
+      </div>
+
+      <!-- Step 4: Discovery -->
+      <div class="step-content <%= currentStep === 4 ? 'active' : '' %>" id="step4">
+        <div class="step-header">
+          <div class="icon">&#128640;</div>
+          <h2>How Discovery Works</h2>
+          <p>Understanding the opportunity pipeline</p>
+        </div>
+
+        <ul class="feature-list">
+          <li>
+            <div class="feature-icon" style="background: #e3f2fd;">1</div>
+            <div class="feature-content">
+              <h4>Stage 1: Discovery</h4>
+              <p>Our scrapers scan bid sources and find opportunities matching your tradelines. New bids appear in your Opportunities list.</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon" style="background: #e8f5e9;">2</div>
+            <div class="feature-content">
+              <h4>Stage 2: Analysis</h4>
+              <p>AI reads the RFP documents and extracts the scope of work, key requirements, and important dates.</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon" style="background: #fff3e0;">3</div>
+            <div class="feature-content">
+              <h4>Stage 3: Your Action</h4>
+              <p>Review opportunities, mark ones you're interested in, and track them through to submission.</p>
+            </div>
+          </li>
+        </ul>
+
+        <div class="highlight-box">
+          <h4>New Opportunities Daily</h4>
+          <p>Discovery runs every few hours. Check back regularly or set up email alerts (coming soon) to stay on top of new bids.</p>
+        </div>
+      </div>
+
+      <!-- Step 5: Ready -->
+      <div class="step-content <%= currentStep === 5 ? 'active' : '' %>" id="step5">
+        <div class="step-header">
+          <div class="icon">&#127881;</div>
+          <h2>You're All Set!</h2>
+          <p>Here's a quick recap of where to find things</p>
+        </div>
+
+        <ul class="feature-list">
+          <li>
+            <div class="feature-icon">&#128200;</div>
+            <div class="feature-content">
+              <h4>Opportunities</h4>
+              <p>Browse all discovered opportunities that match your tradelines</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon">&#128203;</div>
+            <div class="feature-content">
+              <h4>My Bids</h4>
+              <p>Track opportunities you've marked as "interested" or "bidding"</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-icon">&#128100;</div>
+            <div class="feature-content">
+              <h4>Profile</h4>
+              <p>Manage tradelines, source credentials, and account settings</p>
+            </div>
+          </li>
+        </ul>
+
+        <div class="highlight-box">
+          <h4>Next Step: Add Your Credentials</h4>
+          <p>Head to your Profile and add credentials for at least one bid source (like SAM.gov) to start finding opportunities.</p>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="prevStep()" id="prevBtn" <%= currentStep === 1 ? 'disabled' : '' %>>
+          &larr; Previous
+        </button>
+        <button class="btn btn-primary" onclick="nextStep()" id="nextBtn" style="<%= currentStep >= 5 ? 'display:none' : '' %>">
+          Next &rarr;
+        </button>
+        <button class="btn btn-primary" onclick="completeOnboarding()" id="completeBtn" style="<%= currentStep < 5 ? 'display:none' : '' %>">
+          Let's Go! &rarr;
+        </button>
+      </div>
+
+      <div class="skip-link">
+        <a href="/profile?skip_onboarding=true">Skip tour and go to profile</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = <%= currentStep %>;
+    const totalSteps = 5;
+
+    function updateProgress() {
+      const fill = document.getElementById('progressFill');
+      fill.style.width = (currentStep / totalSteps * 100) + '%';
+
+      // Update step circles
+      for (let i = 1; i <= totalSteps; i++) {
+        const circles = document.querySelectorAll('.step-circle');
+        const labels = document.querySelectorAll('.step-label');
+
+        circles.forEach((circle, idx) => {
+          const stepNum = idx + 1;
+          circle.classList.remove('active', 'completed');
+          labels[idx].classList.remove('active');
+
+          if (stepNum < currentStep) {
+            circle.classList.add('completed');
+            circle.innerHTML = '&#10003;';
+          } else if (stepNum === currentStep) {
+            circle.classList.add('active');
+            circle.innerHTML = stepNum;
+            labels[idx].classList.add('active');
+          } else {
+            circle.innerHTML = stepNum;
+          }
+        });
+      }
+
+      // Show/hide step content
+      document.querySelectorAll('.step-content').forEach((content, idx) => {
+        content.classList.toggle('active', idx + 1 === currentStep);
+      });
+
+      // Update prev button
+      document.getElementById('prevBtn').disabled = currentStep === 1;
+
+      // Toggle next/complete buttons
+      document.getElementById('nextBtn').style.display = currentStep < totalSteps ? '' : 'none';
+      document.getElementById('completeBtn').style.display = currentStep >= totalSteps ? '' : 'none';
+    }
+
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        saveProgress();
+        updateProgress();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        saveProgress();
+        updateProgress();
+      }
+    }
+
+    async function saveProgress() {
+      try {
+        await fetch('/onboarding/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: currentStep })
+        });
+      } catch (err) {
+        console.log('Failed to save progress');
+      }
+    }
+
+    async function completeOnboarding() {
+      // Save any entered credentials first
+      await saveAllCredentials();
+
+      try {
+        await fetch('/onboarding/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        window.location.href = '/opportunities';
+      } catch (err) {
+        window.location.href = '/opportunities';
+      }
+    }
+
+    // Toggle credential section visibility
+    function toggleCredSection(source) {
+      const fields = document.getElementById('fields-' + source);
+      const toggle = document.getElementById('toggle-' + source);
+      fields.style.display = toggle.checked ? 'block' : 'none';
+    }
+
+    // Save a single credential
+    async function saveCredential(source) {
+      const data = { source };
+
+      if (source === 'samgov') {
+        const apiKey = document.getElementById('samgov-apikey').value;
+        if (!apiKey) return null;
+        data.api_key = apiKey;
+      } else {
+        const username = document.getElementById(source + '-username').value;
+        const password = document.getElementById(source + '-password').value;
+        if (!username || !password) return null;
+        data.username = username;
+        data.password = password;
+      }
+
+      try {
+        const res = await fetch('/profile/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return res.ok;
+      } catch (err) {
+        console.error('Error saving ' + source + ':', err);
+        return false;
+      }
+    }
+
+    // Save all enabled credentials
+    async function saveAllCredentials() {
+      const sources = ['samgov', 'publicpurchase', 'planetbids', 'bidnet'];
+
+      for (const source of sources) {
+        const toggle = document.getElementById('toggle-' + source);
+        if (toggle && toggle.checked) {
+          await saveCredential(source);
+        }
+      }
+    }
+
+    // Auto-save credentials when leaving step 3
+    const originalNextStep = nextStep;
+    nextStep = async function() {
+      if (currentStep === 3) {
+        await saveAllCredentials();
+      }
+      originalNextStep();
+    };
+  </script>
+</body>
+</html>

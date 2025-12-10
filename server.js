@@ -1,24 +1,32 @@
 /**
- * NextBid Gateway - Authentication Gateway
+ * 7000 - Authentication Gateway
  *
- * Port 3001 - Authentication gateway for all NextBid Engine services
+ * Central authentication layer for NextBid.
+ * All user requests flow through here before accessing services.
+ *
+ * Two domains:
+ * - nextbidportal.com: User portal (contractors)
+ * - nextbidengine.com: Admin/Dev portal
  *
  * Features:
- * - Login screen with system status display
- * - Session management for authenticated users
- * - Gateway to all tradeline admin panels and dev projects
+ * - Session-based authentication
+ * - Reverse proxy to internal services
+ * - Company profile & credential management
+ * - Tradeline subscription management
+ *
+ * Port: 7000
  */
 
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const { createClient } = require('@supabase/supabase-js');
+const bcrypt = require('bcryptjs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.GATEWAY_PORT || 7000;
 
 // Supabase client
 const supabase = createClient(
@@ -29,471 +37,110 @@ const supabase = createClient(
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // Session configuration
-// Note: secure: false until HTTPS/SSL is configured
 app.use(session({
   secret: process.env.SESSION_SECRET || 'nextbid-gateway-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true when HTTPS is configured
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
-// View engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+// Request logging
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  next();
+});
 
-// Version info
-const VERSION = '1.0.0';
-const BUILD_DATE = new Date().toISOString().split('T')[0];
-
-// Server host configuration
-const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
-
-// Droplet IPs
-const DROPLETS = {
-  engine: process.env.ENGINE_DROPLET_HOST || '64.23.151.201',
-  dev: process.env.DEV_DROPLET_HOST || '161.35.229.220',
-  portal: process.env.PORTAL_DROPLET_HOST || null  // Not yet deployed
-};
-
-// Project configurations organized by category (each category = different droplet)
-const TRADELINES = [
-  // ========================================
-  // TRADELINE SERVERS (Engine Droplet - 64.23.151.201)
-  // ========================================
-  {
-    slug: 'security',
-    name: 'Fire/Life Safety & Security',
-    type: 'Security Tradeline',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3002,
-    enginePort: 10002,
-    description: 'Fire alarm, life safety, security guard services, patrol contracts',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'business',
-    name: 'Administrative & Business Services',
-    type: 'Business',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3003,
-    enginePort: 10003,
-    description: 'Administrative support, staffing, professional business services',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'facilities',
-    name: 'Facility Maintenance & Punch-Out',
-    type: 'Facilities',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3004,
-    enginePort: 10004,
-    description: 'General facility maintenance, repairs, punch-out services',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'electrical',
-    name: 'Electrical Construction',
-    type: 'Construction',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3005,
-    enginePort: 10005,
-    description: 'Electrical construction, wiring, power systems installation',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'logistics',
-    name: 'Courier / Delivery / Logistics',
-    type: 'Logistics',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3006,
-    enginePort: 10006,
-    description: 'Courier services, package delivery, logistics and transportation',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'lowvoltage',
-    name: 'Low Voltage Technology',
-    type: 'Technology',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3007,
-    enginePort: 10007,
-    description: 'Low voltage systems, CCTV, access control, structured cabling',
-    live: true,
-    status: 'online'
-  },
-  {
-    slug: 'landscaping',
-    name: 'Landscaping & Grounds Maintenance',
-    type: 'Grounds',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3008,
-    enginePort: 10008,
-    description: 'Landscaping, grounds maintenance, irrigation, tree services',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'hvac',
-    name: 'HVAC / Mechanical',
-    type: 'Mechanical',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3009,
-    enginePort: 10009,
-    description: 'HVAC installation, mechanical systems, climate control',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'plumbing',
-    name: 'Plumbing Services',
-    type: 'Plumbing',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3010,
-    enginePort: 10010,
-    description: 'Plumbing installation, repairs, water systems maintenance',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'custodial',
-    name: 'Custodial & Janitorial Services',
-    type: 'Custodial',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3011,
-    enginePort: 10011,
-    description: 'Janitorial services, cleaning, sanitation, custodial contracts',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'it',
-    name: 'IT & Technical Services',
-    type: 'IT',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3012,
-    enginePort: 10012,
-    description: 'IT support, technical services, network infrastructure',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'environmental',
-    name: 'Environmental & Waste Services',
-    type: 'Environmental',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3013,
-    enginePort: 10013,
-    description: 'Waste management, recycling, environmental remediation',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'painting',
-    name: 'Painting & Surface Coatings',
-    type: 'Painting',
-    category: 'tradeline',
-    host: DROPLETS.engine,
-    adminPort: 3014,
-    enginePort: 10014,
-    description: 'Painting services, surface coatings, finishing work',
-    live: false,
-    status: 'offline'
-  },
-
-  // ========================================
-  // DEV PROJECTS (Dev Droplet - 161.35.229.220)
-  // ========================================
-  {
-    slug: 'dev',
-    name: 'NextBid Dev',
-    type: 'Development',
-    category: 'dev',
-    host: DROPLETS.dev,
-    adminPort: 3099,
-    enginePort: 10099,
-    description: 'Development and testing environment for new features',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'sources',
-    name: 'NextBid Sources',
-    type: 'Source Discovery',
-    category: 'dev',
-    host: DROPLETS.dev,
-    adminPort: 3098,
-    enginePort: null,
-    description: 'Source discovery pipeline - find and onboard new procurement portals',
-    live: true,
-    status: 'online'
-  },
-  {
-    slug: 'portal',
-    name: 'NextBid Portal',
-    type: 'Client Portal',
-    category: 'dev',
-    host: DROPLETS.dev,
-    adminPort: 3100,
-    enginePort: null,
-    description: 'Client-facing portal for opportunity management',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'tech',
-    name: 'NextBid Tech',
-    type: 'Technology',
-    category: 'dev',
-    host: DROPLETS.dev,
-    adminPort: 3101,
-    enginePort: null,
-    description: 'Technology stack and infrastructure management',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'app',
-    name: 'NextBid App',
-    type: 'Mobile/Web App',
-    category: 'dev',
-    host: DROPLETS.dev,
-    adminPort: 3102,
-    enginePort: null,
-    description: 'NextBid mobile and web application',
-    live: false,
-    status: 'offline'
-  },
-
-  // ========================================
-  // NEXTBID PORTALS (Portal Droplet - TBD)
-  // ========================================
-  {
-    slug: 'keystone',
-    name: 'Keystone Portal',
-    type: 'Client Portal',
-    category: 'portal',
-    host: DROPLETS.portal,
-    adminPort: 4000,
-    enginePort: null,
-    description: 'Client-facing CRM for Keystone Advantage',
-    live: false,
-    status: 'offline'
-  },
-  {
-    slug: 'bidder-portal',
-    name: 'Bidder Portal',
-    type: 'Client Portal',
-    category: 'portal',
-    host: DROPLETS.portal,
-    adminPort: 4001,
-    enginePort: null,
-    description: 'Public-facing bidder portal for opportunity search',
-    live: false,
-    status: 'offline'
-  }
-];
+// ============================================================
+// MIDDLEWARE
+// ============================================================
 
 /**
- * Check system status for all tradeline servers
+ * Check if user is authenticated
  */
-async function getSystemStatus() {
-  const tradelines = [
-    { name: 'Security', port: 3054, enginePort: 10054 },
-    { name: 'LowVoltage', port: 3007, enginePort: 10007 },
-    // Add more tradelines as they come online
-  ];
-
-  const status = {
-    patcher: { status: 'online', version: VERSION },
-    database: { status: 'checking' },
-    tradelines: []
-  };
-
-  // Check database
-  try {
-    const { error } = await supabase.from('security_discovered_opportunities').select('id').limit(1);
-    status.database.status = error ? 'error' : 'online';
-  } catch (e) {
-    status.database.status = 'offline';
-  }
-
-  // For now, just return configured tradelines
-  // In future, actually ping each server
-  status.tradelines = tradelines.map(t => ({
-    name: t.name,
-    adminPort: t.port,
-    enginePort: t.enginePort,
-    status: 'unknown' // Would ping in production
-  }));
-
-  return status;
-}
-
-// Auth middleware
 function requireAuth(req, res, next) {
   if (req.session && req.session.user) {
     return next();
   }
-  res.redirect('/?error=Please login to continue');
+
+  // API requests get 401
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Browser requests redirect to login
+  res.redirect('/login');
 }
 
-// Auth middleware for proxy (returns 401 instead of redirect)
-function requireAuthForProxy(req, res, next) {
-  if (req.session && req.session.user) {
+/**
+ * Check if user is an admin (engine access)
+ */
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.user && req.session.user.domain === 'engine') {
     return next();
   }
-  res.status(401).send('Unauthorized - Please login at /');
+
+  res.status(403).json({ error: 'Forbidden - Admin access required' });
 }
 
-//=============================================================================
-// PROXY ROUTES - Access tradeline admin panels through gateway
-// Routes: /admin/{slug}/* -> localhost:{port}/*
-//=============================================================================
+// ============================================================
+// PUBLIC ROUTES
+// ============================================================
 
-// Set up proxy for each tradeline
-TRADELINES.forEach(tradeline => {
-  const proxyPath = `/admin/${tradeline.slug}`;
-
-  // Use localhost for same-server apps (Engine droplet), external IP for other droplets
-  // This allows the proxy to bypass the firewall for local services
-  const isLocalService = tradeline.host === DROPLETS.engine || !tradeline.host;
-  const targetHost = isLocalService ? 'localhost' : tradeline.host;
-  const targetUrl = `http://${targetHost}:${tradeline.adminPort}`;
-
-  app.use(proxyPath, requireAuthForProxy, createProxyMiddleware({
-    target: targetUrl,
-    changeOrigin: true,
-    pathRewrite: {
-      [`^${proxyPath}`]: '' // Remove /admin/slug prefix when forwarding
-    },
-    onProxyReq: (proxyReq, req, res) => {
-      // Add user info header so tradeline knows who's accessing
-      if (req.session && req.session.user) {
-        proxyReq.setHeader('X-NextBid-User', req.session.user.email);
-        proxyReq.setHeader('X-NextBid-Role', req.session.user.role);
-      }
-      // Tell the backend app what base URL prefix to use for links
-      proxyReq.setHeader('X-Base-URL', proxyPath);
-    },
-    onError: (err, req, res) => {
-      console.error(`Proxy error for ${tradeline.slug}:`, err.message);
-      res.status(502).send(`
-        <h1>Tradeline Offline</h1>
-        <p>The ${tradeline.name} server is not responding.</p>
-        <p>Target: ${targetUrl}</p>
-        <a href="/gateway">Back to Gateway</a>
-      `);
-    }
-  }));
-
-  console.log(`  Proxy configured: /admin/${tradeline.slug} -> ${targetUrl}`);
+/**
+ * Health check
+ */
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'auth-gateway',
+    port: PORT,
+    timestamp: new Date().toISOString()
+  });
 });
 
-//=============================================================================
-// ROUTES
-//=============================================================================
-
-// Login page (main entry point)
-app.get('/', async (req, res) => {
-  // If already logged in, redirect to gateway
+/**
+ * Login page
+ */
+app.get('/login', (req, res) => {
   if (req.session && req.session.user) {
-    return res.redirect('/gateway');
+    return res.redirect('/');
   }
-
-  const systemStatus = await getSystemStatus();
-
-  res.render('login', {
-    version: VERSION,
-    buildDate: BUILD_DATE,
-    systemStatus,
-    error: req.query.error || null
-  });
+  res.render('login', { error: null });
 });
 
-// Gateway page (after login)
-app.get('/gateway', requireAuth, async (req, res) => {
-  // Build tradeline list with direct URLs for now
-  // TODO: Switch to proxy URLs when tradeline admins support BASE_URL prefix
-  const tradelines = TRADELINES.map(t => ({
-    ...t,
-    url: t.live && t.host ? `http://${t.host}:${t.adminPort}/` : `/admin/${t.slug}/`
-  }));
-
-  res.render('gateway', {
-    version: VERSION,
-    buildDate: BUILD_DATE,
-    user: req.session.user,
-    tradelines
-  });
-});
-
-// Login POST
+/**
+ * Process login
+ */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  console.log('Login attempt for:', email);
-
-  if (!email || !password) {
-    return res.redirect('/?error=Email and password required');
-  }
 
   try {
-    // Get user from database
+    // Find user in database
     const { data: user, error } = await supabase
       .from('nextbid_users')
       .select('*')
       .eq('email', email.toLowerCase())
+      .eq('is_active', true)
       .single();
 
-    console.log('DB lookup result:', error ? error.message : 'User found');
-
     if (error || !user) {
-      return res.redirect('/?error=Invalid credentials');
+      return res.render('login', { error: 'Invalid email or password' });
     }
 
-    // Check password
+    // Verify password
     const validPassword = await bcrypt.compare(password, user.password_hash);
-    console.log('Password valid:', validPassword);
     if (!validPassword) {
-      return res.redirect('/?error=Invalid credentials');
+      return res.render('login', { error: 'Invalid email or password' });
     }
-
-    // Check if user is active
-    if (!user.is_active) {
-      return res.redirect('/?error=Account disabled');
-    }
-
-    // Set session
-    req.session.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role
-    };
-    console.log('Session set for user:', user.email);
 
     // Update last login
     await supabase
@@ -501,63 +148,520 @@ app.post('/login', async (req, res) => {
       .update({ last_login: new Date().toISOString() })
       .eq('id', user.id);
 
-    // Redirect to gateway
-    res.redirect('/gateway');
+    // Create session
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      company_id: user.company_id,
+      domain: user.domain,
+      role: user.role
+    };
 
-  } catch (err) {
-    console.error('Login error:', err);
-    res.redirect('/?error=Login failed');
+    // Log the login
+    await supabase.from('nextbid_audit_log').insert({
+      user_id: user.id,
+      action: 'login',
+      ip_address: req.ip,
+      details: { user_agent: req.headers['user-agent'] }
+    });
+
+    console.log(`[Auth] User logged in: ${user.email} (${user.domain})`);
+
+    // Redirect based on domain
+    if (user.domain === 'engine') {
+      res.redirect('/dashboard');
+    } else {
+      res.redirect('/opportunities');
+    }
+
+  } catch (error) {
+    console.error('[Auth] Login error:', error.message);
+    res.render('login', { error: 'An error occurred. Please try again.' });
   }
 });
 
-// Logout
+/**
+ * Logout
+ */
 app.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    res.redirect('/');
+  if (req.session) {
+    const user = req.session.user;
+    req.session.destroy();
+    if (user) {
+      console.log(`[Auth] User logged out: ${user.email}`);
+    }
+  }
+  res.redirect('/login');
+});
+
+/**
+ * Registration page
+ */
+app.get('/register', (req, res) => {
+  res.render('register', { error: null });
+});
+
+/**
+ * Process registration
+ */
+app.post('/register', async (req, res) => {
+  const { email, password, name, company_name, tradelines } = req.body;
+
+  try {
+    // Check if email exists
+    const { data: existing } = await supabase
+      .from('nextbid_users')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (existing) {
+      return res.render('register', { error: 'Email already registered' });
+    }
+
+    // Hash password
+    const password_hash = await bcrypt.hash(password, 12);
+
+    // Create company first
+    const { data: company, error: companyError } = await supabase
+      .from('nextbid_companies')
+      .insert({
+        name: company_name,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (companyError) {
+      console.error('[Auth] Company creation error:', companyError);
+      return res.render('register', { error: 'Failed to create company' });
+    }
+
+    // Create user
+    const { data: user, error: userError } = await supabase
+      .from('nextbid_users')
+      .insert({
+        email: email.toLowerCase(),
+        password_hash,
+        name,
+        company_id: company.id,
+        domain: 'portal',
+        role: 'owner',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (userError) {
+      console.error('[Auth] User creation error:', userError);
+      return res.render('register', { error: 'Failed to create account' });
+    }
+
+    // Add tradeline subscriptions
+    const tradelineList = Array.isArray(tradelines) ? tradelines : [tradelines];
+    for (const tradeline of tradelineList.filter(Boolean)) {
+      await supabase.from('nextbid_company_tradelines').insert({
+        company_id: company.id,
+        tradeline,
+        created_at: new Date().toISOString()
+      });
+    }
+
+    console.log(`[Auth] New registration: ${email} (company: ${company_name})`);
+
+    // Auto-login
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      company_id: company.id,
+      domain: 'portal',
+      role: 'owner'
+    };
+
+    res.redirect('/profile');
+
+  } catch (error) {
+    console.error('[Auth] Registration error:', error.message);
+    res.render('register', { error: 'An error occurred. Please try again.' });
+  }
+});
+
+// ============================================================
+// AUTHENTICATED ROUTES
+// ============================================================
+
+/**
+ * Home - redirect based on domain and onboarding status
+ */
+app.get('/', requireAuth, async (req, res) => {
+  // Check onboarding status for portal users
+  if (req.session.user.domain === 'portal') {
+    const { data: user } = await supabase
+      .from('nextbid_users')
+      .select('onboarding_completed')
+      .eq('id', req.session.user.id)
+      .single();
+
+    if (!user?.onboarding_completed) {
+      return res.redirect('/onboarding');
+    }
+    return res.redirect('/opportunities');
+  }
+
+  res.redirect('/dashboard');
+});
+
+/**
+ * Onboarding - video game style tutorial
+ */
+app.get('/onboarding', requireAuth, async (req, res) => {
+  try {
+    // Get user and company info
+    const { data: user } = await supabase
+      .from('nextbid_users')
+      .select('onboarding_step')
+      .eq('id', req.session.user.id)
+      .single();
+
+    const { data: company } = await supabase
+      .from('nextbid_companies')
+      .select('*, nextbid_company_tradelines(*)')
+      .eq('id', req.session.user.company_id)
+      .single();
+
+    res.render('onboarding', {
+      user: req.session.user,
+      company,
+      currentStep: user?.onboarding_step || 1
+    });
+  } catch (error) {
+    console.error('[Onboarding] Error:', error.message);
+    res.redirect('/opportunities');
+  }
+});
+
+/**
+ * Save onboarding progress
+ */
+app.post('/onboarding/progress', requireAuth, async (req, res) => {
+  const { step } = req.body;
+
+  try {
+    await supabase
+      .from('nextbid_users')
+      .update({ onboarding_step: step })
+      .eq('id', req.session.user.id);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Complete onboarding
+ */
+app.post('/onboarding/complete', requireAuth, async (req, res) => {
+  try {
+    await supabase
+      .from('nextbid_users')
+      .update({
+        onboarding_completed: true,
+        onboarding_step: 6
+      })
+      .eq('id', req.session.user.id);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * User profile
+ */
+app.get('/profile', requireAuth, async (req, res) => {
+  try {
+    // Get company info
+    const { data: company } = await supabase
+      .from('nextbid_companies')
+      .select('*, nextbid_company_tradelines(*)')
+      .eq('id', req.session.user.company_id)
+      .single();
+
+    // Get company credentials (without showing actual values)
+    const { data: credentials } = await supabase
+      .from('nextbid_company_credentials')
+      .select('source, is_configured, status, last_used')
+      .eq('company_id', req.session.user.company_id);
+
+    res.render('profile', {
+      user: req.session.user,
+      company,
+      credentials: credentials || []
+    });
+
+  } catch (error) {
+    console.error('[Profile] Error:', error.message);
+    res.status(500).send('Error loading profile');
+  }
+});
+
+/**
+ * Update company credentials
+ */
+app.post('/profile/credentials', requireAuth, async (req, res) => {
+  const { source, username, password, api_key } = req.body;
+
+  try {
+    // Encrypt or hash sensitive data before storing
+    const credentialData = {
+      company_id: req.session.user.company_id,
+      source,
+      is_configured: true,
+      updated_at: new Date().toISOString()
+    };
+
+    // Store based on credential type
+    if (api_key) {
+      credentialData.api_key_encrypted = api_key; // TODO: Actually encrypt this
+    }
+    if (username && password) {
+      credentialData.username = username;
+      credentialData.password_encrypted = password; // TODO: Actually encrypt this
+    }
+
+    // Upsert credential
+    const { error } = await supabase
+      .from('nextbid_company_credentials')
+      .upsert(credentialData, { onConflict: 'company_id,source' });
+
+    if (error) {
+      console.error('[Credentials] Update error:', error);
+      return res.status(500).json({ error: 'Failed to update credentials' });
+    }
+
+    console.log(`[Credentials] Updated ${source} for company ${req.session.user.company_id}`);
+
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error('[Credentials] Error:', error.message);
+    res.status(500).json({ error: 'Failed to update credentials' });
+  }
+});
+
+// ============================================================
+// API ROUTES - For internal services to get credentials
+// ============================================================
+
+/**
+ * Get company credentials for a source
+ * Called by tradeline servers to get credentials for scraping
+ */
+app.get('/api/credentials/:companyId/:source', async (req, res) => {
+  const { companyId, source } = req.params;
+  const apiKey = req.headers['x-api-key'];
+
+  // Validate API key (internal services use a shared key)
+  if (apiKey !== process.env.INTERNAL_API_KEY) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  try {
+    const { data: credential } = await supabase
+      .from('nextbid_company_credentials')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('source', source)
+      .single();
+
+    if (!credential) {
+      return res.status(404).json({ error: 'Credentials not found' });
+    }
+
+    // Return decrypted credentials
+    res.json({
+      success: true,
+      source,
+      username: credential.username,
+      password: credential.password_encrypted, // TODO: Decrypt
+      api_key: credential.api_key_encrypted // TODO: Decrypt
+    });
+
+  } catch (error) {
+    console.error('[API] Credentials error:', error.message);
+    res.status(500).json({ error: 'Failed to get credentials' });
+  }
+});
+
+/**
+ * Get all companies subscribed to a tradeline
+ * Called by tradeline servers to know who to scrape for
+ */
+app.get('/api/tradeline/:tradeline/companies', async (req, res) => {
+  const { tradeline } = req.params;
+  const apiKey = req.headers['x-api-key'];
+
+  if (apiKey !== process.env.INTERNAL_API_KEY) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  try {
+    const { data: subscriptions } = await supabase
+      .from('nextbid_company_tradelines')
+      .select('company_id, nextbid_companies(id, name)')
+      .eq('tradeline', tradeline)
+      .eq('is_active', true);
+
+    const companies = (subscriptions || []).map(s => ({
+      id: s.company_id,
+      name: s.nextbid_companies?.name
+    }));
+
+    res.json({
+      success: true,
+      tradeline,
+      companies
+    });
+
+  } catch (error) {
+    console.error('[API] Tradeline companies error:', error.message);
+    res.status(500).json({ error: 'Failed to get companies' });
+  }
+});
+
+// ============================================================
+// REVERSE PROXY - Route authenticated requests to internal services
+// ============================================================
+
+// Dashboard (7500)
+app.use('/dashboard', requireAuth, createProxyMiddleware({
+  target: 'http://localhost:7500',
+  pathRewrite: { '^/dashboard': '' },
+  changeOrigin: true
+}));
+
+// Patcher API (7101)
+app.use('/patcher', requireAdmin, createProxyMiddleware({
+  target: 'http://localhost:7101',
+  changeOrigin: true
+}));
+
+// Dev sync (7101)
+app.use('/dev-sync', requireAdmin, createProxyMiddleware({
+  target: 'http://localhost:7101',
+  pathRewrite: { '^/dev-sync': '/dev' },
+  changeOrigin: true
+}));
+
+// Tradeline admin pages (3002-3021) - dynamic routing
+app.use('/tradelines/:name', requireAuth, (req, res, next) => {
+  const tradelinePorts = {
+    security: 3002,
+    administrative: 3003,
+    facilities: 3004,
+    electrical: 3005,
+    logistics: 3006,
+    lowvoltage: 3007,
+    landscaping: 3008,
+    hvac: 3009,
+    plumbing: 3010,
+    janitorial: 3011,
+    support: 3012,
+    waste: 3013,
+    construction: 3014,
+    roofing: 3015,
+    painting: 3016,
+    flooring: 3017,
+    demolition: 3018,
+    environmental: 3019,
+    concrete: 3020,
+    fencing: 3021
+  };
+
+  const port = tradelinePorts[req.params.name];
+  if (!port) {
+    return res.status(404).json({ error: 'Unknown tradeline' });
+  }
+
+  createProxyMiddleware({
+    target: `http://localhost:${port}`,
+    pathRewrite: { [`^/tradelines/${req.params.name}`]: '' },
+    changeOrigin: true
+  })(req, res, next);
+});
+
+// ============================================================
+// PORTAL USER ROUTES (nextbidportal.com)
+// ============================================================
+
+/**
+ * Browse opportunities
+ */
+app.get('/opportunities', requireAuth, async (req, res) => {
+  // TODO: Fetch opportunities for user's tradelines
+  res.render('opportunities', { user: req.session.user });
+});
+
+/**
+ * My bids
+ */
+app.get('/bids', requireAuth, async (req, res) => {
+  res.render('bids', { user: req.session.user });
+});
+
+// ============================================================
+// ERROR HANDLING
+// ============================================================
+
+app.use((err, req, res, next) => {
+  console.error(`[Error] ${err.message}`);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-// API: Verify session (for other services to check)
-app.get('/api/verify-session', (req, res) => {
-  if (req.session && req.session.user) {
-    res.json({
-      valid: true,
-      user: {
-        id: req.session.user.id,
-        email: req.session.user.email,
-        name: req.session.user.name,
-        role: req.session.user.role
-      }
-    });
-  } else {
-    res.json({ valid: false });
-  }
-});
+// ============================================================
+// START SERVER
+// ============================================================
 
-// API: System status
-app.get('/api/status', async (req, res) => {
-  const status = await getSystemStatus();
-  res.json(status);
-});
-
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   ███╗   ██╗███████╗██╗  ██╗████████╗██████╗ ██╗██████╗   ║
-║   ████╗  ██║██╔════╝╚██╗██╔╝╚══██╔══╝██╔══██╗██║██╔══██╗  ║
-║   ██╔██╗ ██║█████╗   ╚███╔╝    ██║   ██████╔╝██║██║  ██║  ║
-║   ██║╚██╗██║██╔══╝   ██╔██╗    ██║   ██╔══██╗██║██║  ██║  ║
-║   ██║ ╚████║███████╗██╔╝ ██╗   ██║   ██████╔╝██║██████╔╝  ║
-║   ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═════╝ ╚═╝╚═════╝   ║
-║                                                           ║
-║   PATCHER v${VERSION}                                         ║
-║   Login Gateway & Update System                           ║
-║                                                           ║
-╠═══════════════════════════════════════════════════════════╣
-║   Server running on port ${PORT}                             ║
-║   http://localhost:${PORT}                                   ║
-╚═══════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║   NextBid Authentication Gateway                               ║
+║                                                                ║
+║   Port: ${PORT}                                                   ║
+║                                                                ║
+║   Domains:                                                     ║
+║   - nextbidportal.com → User Portal                            ║
+║   - nextbidengine.com → Admin/Dev Portal                       ║
+║                                                                ║
+║   Routes:                                                      ║
+║   GET  /login            - Login page                          ║
+║   POST /login            - Process login                       ║
+║   GET  /logout           - Logout                              ║
+║   GET  /register         - Registration page                   ║
+║   POST /register         - Process registration                ║
+║   GET  /profile          - User profile                        ║
+║   POST /profile/creds    - Update company credentials          ║
+║                                                                ║
+║   Proxied Routes (authenticated):                              ║
+║   /dashboard/*           → 7500 Dashboard                      ║
+║   /patcher/*             → 7101 Patcher (admin only)           ║
+║   /dev-sync/*            → 7101 Dev Sync (admin only)          ║
+║   /tradelines/:name/*    → 3002-3021 Tradeline admins          ║
+║                                                                ║
+║   API Routes (internal services):                              ║
+║   GET /api/credentials/:company/:source                        ║
+║   GET /api/tradeline/:name/companies                           ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
   `);
 });
+
+module.exports = app;

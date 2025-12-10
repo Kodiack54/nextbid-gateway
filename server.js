@@ -410,9 +410,8 @@ app.get('/choose', requireAuth, (req, res) => {
  * Dashboard redirect - goes directly to dashboard server
  */
 app.get('/dashboard-redirect', requireAuth, (req, res) => {
-  // Redirect to the actual dashboard server
-  const dashboardUrl = process.env.DASHBOARD_URL || 'http://134.199.209.140:7500';
-  res.redirect(dashboardUrl);
+  // Redirect to dashboard through gateway proxy (not direct access)
+  res.redirect('/dashboard');
 });
 
 /**

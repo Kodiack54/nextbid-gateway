@@ -4,13 +4,10 @@
  * Central authentication layer for NextBid.
  * All user requests flow through here before accessing services.
  *
- * Two domains:
- * - nextbidportal.com: User portal (contractors)
- * - nextbidengine.com: Admin/Dev portal
- *
  * Features:
- * - Session-based authentication
- * - Reverse proxy to internal services
+ * - JWT-based authentication with refresh tokens
+ * - Single Sign-On across all services
+ * - Reverse proxy to internal services with user headers
  * - Company profile & credential management
  * - Tradeline subscription management
  *
@@ -19,14 +16,21 @@
 
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 7000;
+
+// JWT Configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'nextbid-jwt-secret-change-in-production';
+const JWT_EXPIRES_IN = '1h';           // Access token: 1 hour
+const REFRESH_EXPIRES_IN = '7d';       // Refresh token: 7 days
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
 // Supabase client
 const supabase = createClient(
@@ -37,21 +41,10 @@ const supabase = createClient(
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'nextbid-gateway-secret-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
 
 // Request logging
 app.use((req, res, next) => {
@@ -61,34 +54,122 @@ app.use((req, res, next) => {
 });
 
 // ============================================================
-// MIDDLEWARE
+// JWT HELPERS
 // ============================================================
 
 /**
- * Check if user is authenticated
+ * Generate access and refresh tokens
  */
-function requireAuth(req, res, next) {
-  if (req.session && req.session.user) {
-    return next();
+function generateTokens(user) {
+  const payload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    company_id: user.company_id,
+    domain: user.domain,
+    role: user.role
+  };
+
+  const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, JWT_SECRET, { expiresIn: REFRESH_EXPIRES_IN });
+
+  return { accessToken, refreshToken };
+}
+
+/**
+ * Verify access token
+ */
+function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Set auth cookies
+ */
+function setAuthCookies(res, accessToken, refreshToken) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  };
+
+  res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 60 * 60 * 1000 }); // 1 hour
+  res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: COOKIE_MAX_AGE }); // 7 days
+}
+
+/**
+ * Clear auth cookies
+ */
+function clearAuthCookies(res) {
+  res.clearCookie('accessToken', { path: '/' });
+  res.clearCookie('refreshToken', { path: '/' });
+}
+
+// ============================================================
+// AUTH MIDDLEWARE
+// ============================================================
+
+/**
+ * Check if user is authenticated via JWT
+ * Automatically refreshes token if expired but refresh token is valid
+ */
+async function requireAuth(req, res, next) {
+  const accessToken = req.cookies.accessToken;
+  const refreshToken = req.cookies.refreshToken;
+
+  // Try access token first
+  let user = verifyToken(accessToken);
+
+  // If access token expired, try refresh
+  if (!user && refreshToken) {
+    const refreshPayload = verifyToken(refreshToken);
+
+    if (refreshPayload && refreshPayload.type === 'refresh') {
+      // Get fresh user data from database
+      const { data: dbUser } = await supabase
+        .from('nextbid_users')
+        .select('*')
+        .eq('id', refreshPayload.id)
+        .eq('is_active', true)
+        .single();
+
+      if (dbUser) {
+        // Generate new tokens
+        const tokens = generateTokens(dbUser);
+        setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+        user = verifyToken(tokens.accessToken);
+        console.log(`[Auth] Token refreshed for: ${dbUser.email}`);
+      }
+    }
   }
 
-  // API requests get 401
-  if (req.path.startsWith('/api/')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!user) {
+    // API requests get 401
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    // Browser requests redirect to login
+    return res.redirect('/login');
   }
 
-  // Browser requests redirect to login
-  res.redirect('/login');
+  // Attach user to request
+  req.user = user;
+  next();
 }
 
 /**
  * Check if user is an admin (engine access)
+ * Superadmins can access everything
  */
 function requireAdmin(req, res, next) {
-  if (req.session && req.session.user && (req.session.user.domain === 'engine' || req.session.user.role === 'superadmin')) {
+  if (req.user && (req.user.domain === 'engine' || req.user.role === 'superadmin')) {
     return next();
   }
-
   res.status(403).json({ error: 'Forbidden - Admin access required' });
 }
 
@@ -104,6 +185,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     service: 'auth-gateway',
     port: PORT,
+    auth: 'jwt',
     timestamp: new Date().toISOString()
   });
 });
@@ -112,14 +194,16 @@ app.get('/health', (req, res) => {
  * Login page
  */
 app.get('/login', (req, res) => {
-  if (req.session && req.session.user) {
+  // Check if already logged in
+  const user = verifyToken(req.cookies.accessToken);
+  if (user) {
     return res.redirect('/');
   }
   res.render('login', { error: null });
 });
 
 /**
- * Process login
+ * Process login - issues JWT tokens
  */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -143,21 +227,15 @@ app.post('/login', async (req, res) => {
       return res.render('login', { error: 'Invalid email or password' });
     }
 
+    // Generate JWT tokens
+    const tokens = generateTokens(user);
+    setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+
     // Update last login
     await supabase
       .from('nextbid_users')
       .update({ last_login: new Date().toISOString() })
       .eq('id', user.id);
-
-    // Create session
-    req.session.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      company_id: user.company_id,
-      domain: user.domain,
-      role: user.role
-    };
 
     // Log the login
     await supabase.from('nextbid_audit_log').insert({
@@ -167,9 +245,9 @@ app.post('/login', async (req, res) => {
       details: { user_agent: req.headers['user-agent'] }
     });
 
-    console.log(`[Auth] User logged in: ${user.email} (${user.domain})`);
+    console.log(`[Auth] User logged in: ${user.email} (${user.role || user.domain})`);
 
-    // Redirect based on domain
+    // Redirect based on role/domain
     if (user.domain === 'engine' || user.role === 'superadmin') {
       res.redirect('/dashboard');
     } else {
@@ -183,16 +261,19 @@ app.post('/login', async (req, res) => {
 });
 
 /**
- * Logout
+ * Logout - clears JWT cookies
  */
-app.get('/logout', (req, res) => {
-  if (req.session) {
-    const user = req.session.user;
-    req.session.destroy();
-    if (user) {
-      console.log(`[Auth] User logged out: ${user.email}`);
-    }
+app.get('/logout', async (req, res) => {
+  const user = verifyToken(req.cookies.accessToken);
+  if (user) {
+    console.log(`[Auth] User logged out: ${user.email}`);
+    await supabase.from('nextbid_audit_log').insert({
+      user_id: user.id,
+      action: 'logout',
+      ip_address: req.ip
+    });
   }
+  clearAuthCookies(res);
   res.redirect('/login');
 });
 
@@ -271,15 +352,9 @@ app.post('/register', async (req, res) => {
 
     console.log(`[Auth] New registration: ${email} (company: ${company_name})`);
 
-    // Auto-login
-    req.session.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      company_id: company.id,
-      domain: 'portal',
-      role: 'owner'
-    };
+    // Generate JWT tokens and auto-login
+    const tokens = generateTokens(user);
+    setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
 
     res.redirect('/profile');
 
@@ -297,21 +372,23 @@ app.post('/register', async (req, res) => {
  * Home - redirect based on domain and onboarding status
  */
 app.get('/', requireAuth, async (req, res) => {
-  // Check onboarding status for portal users
-  if (req.session.user.domain === 'portal') {
-    const { data: user } = await supabase
-      .from('nextbid_users')
-      .select('onboarding_completed')
-      .eq('id', req.session.user.id)
-      .single();
-
-    if (!user?.onboarding_completed) {
-      return res.redirect('/onboarding');
-    }
-    return res.redirect('/opportunities');
+  // Superadmins and engine users go to dashboard
+  if (req.user.role === 'superadmin' || req.user.domain === 'engine') {
+    return res.redirect('/dashboard');
   }
 
-  res.redirect('/dashboard');
+  // Check onboarding status for portal users
+  const { data: user } = await supabase
+    .from('nextbid_users')
+    .select('onboarding_completed')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!user?.onboarding_completed) {
+    return res.redirect('/onboarding');
+  }
+
+  res.redirect('/opportunities');
 });
 
 /**
@@ -319,21 +396,20 @@ app.get('/', requireAuth, async (req, res) => {
  */
 app.get('/onboarding', requireAuth, async (req, res) => {
   try {
-    // Get user and company info
     const { data: user } = await supabase
       .from('nextbid_users')
       .select('onboarding_step')
-      .eq('id', req.session.user.id)
+      .eq('id', req.user.id)
       .single();
 
     const { data: company } = await supabase
       .from('nextbid_companies')
       .select('*, nextbid_company_tradelines(*)')
-      .eq('id', req.session.user.company_id)
+      .eq('id', req.user.company_id)
       .single();
 
     res.render('onboarding', {
-      user: req.session.user,
+      user: req.user,
       company,
       currentStep: user?.onboarding_step || 1
     });
@@ -353,7 +429,7 @@ app.post('/onboarding/progress', requireAuth, async (req, res) => {
     await supabase
       .from('nextbid_users')
       .update({ onboarding_step: step })
-      .eq('id', req.session.user.id);
+      .eq('id', req.user.id);
 
     res.json({ success: true });
   } catch (error) {
@@ -372,7 +448,7 @@ app.post('/onboarding/complete', requireAuth, async (req, res) => {
         onboarding_completed: true,
         onboarding_step: 6
       })
-      .eq('id', req.session.user.id);
+      .eq('id', req.user.id);
 
     res.json({ success: true });
   } catch (error) {
@@ -385,21 +461,19 @@ app.post('/onboarding/complete', requireAuth, async (req, res) => {
  */
 app.get('/profile', requireAuth, async (req, res) => {
   try {
-    // Get company info
     const { data: company } = await supabase
       .from('nextbid_companies')
       .select('*, nextbid_company_tradelines(*)')
-      .eq('id', req.session.user.company_id)
+      .eq('id', req.user.company_id)
       .single();
 
-    // Get company credentials (without showing actual values)
     const { data: credentials } = await supabase
       .from('nextbid_company_credentials')
       .select('source, is_configured, status, last_used')
-      .eq('company_id', req.session.user.company_id);
+      .eq('company_id', req.user.company_id);
 
     res.render('profile', {
-      user: req.session.user,
+      user: req.user,
       company,
       credentials: credentials || []
     });
@@ -417,15 +491,13 @@ app.post('/profile/credentials', requireAuth, async (req, res) => {
   const { source, username, password, api_key } = req.body;
 
   try {
-    // Encrypt or hash sensitive data before storing
     const credentialData = {
-      company_id: req.session.user.company_id,
+      company_id: req.user.company_id,
       source,
       is_configured: true,
       updated_at: new Date().toISOString()
     };
 
-    // Store based on credential type
     if (api_key) {
       credentialData.api_key_encrypted = api_key; // TODO: Actually encrypt this
     }
@@ -434,7 +506,6 @@ app.post('/profile/credentials', requireAuth, async (req, res) => {
       credentialData.password_encrypted = password; // TODO: Actually encrypt this
     }
 
-    // Upsert credential
     const { error } = await supabase
       .from('nextbid_company_credentials')
       .upsert(credentialData, { onConflict: 'company_id,source' });
@@ -444,8 +515,7 @@ app.post('/profile/credentials', requireAuth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to update credentials' });
     }
 
-    console.log(`[Credentials] Updated ${source} for company ${req.session.user.company_id}`);
-
+    console.log(`[Credentials] Updated ${source} for company ${req.user.company_id}`);
     res.json({ success: true });
 
   } catch (error) {
@@ -460,13 +530,11 @@ app.post('/profile/credentials', requireAuth, async (req, res) => {
 
 /**
  * Get company credentials for a source
- * Called by tradeline servers to get credentials for scraping
  */
 app.get('/api/credentials/:companyId/:source', async (req, res) => {
   const { companyId, source } = req.params;
   const apiKey = req.headers['x-api-key'];
 
-  // Validate API key (internal services use a shared key)
   if (apiKey !== process.env.INTERNAL_API_KEY) {
     return res.status(401).json({ error: 'Invalid API key' });
   }
@@ -483,13 +551,12 @@ app.get('/api/credentials/:companyId/:source', async (req, res) => {
       return res.status(404).json({ error: 'Credentials not found' });
     }
 
-    // Return decrypted credentials
     res.json({
       success: true,
       source,
       username: credential.username,
-      password: credential.password_encrypted, // TODO: Decrypt
-      api_key: credential.api_key_encrypted // TODO: Decrypt
+      password: credential.password_encrypted,
+      api_key: credential.api_key_encrypted
     });
 
   } catch (error) {
@@ -500,7 +567,6 @@ app.get('/api/credentials/:companyId/:source', async (req, res) => {
 
 /**
  * Get all companies subscribed to a tradeline
- * Called by tradeline servers to know who to scrape for
  */
 app.get('/api/tradeline/:tradeline/companies', async (req, res) => {
   const { tradeline } = req.params;
@@ -522,11 +588,7 @@ app.get('/api/tradeline/:tradeline/companies', async (req, res) => {
       name: s.nextbid_companies?.name
     }));
 
-    res.json({
-      success: true,
-      tradeline,
-      companies
-    });
+    res.json({ success: true, tradeline, companies });
 
   } catch (error) {
     console.error('[API] Tradeline companies error:', error.message);
@@ -535,83 +597,77 @@ app.get('/api/tradeline/:tradeline/companies', async (req, res) => {
 });
 
 // ============================================================
-// REVERSE PROXY - Route authenticated requests to internal services
+// REVERSE PROXY - Pass user info to backend services
 // ============================================================
 
-// Dashboard (7500)
-app.use('/dashboard', requireAuth, createProxyMiddleware({
-  target: 'http://localhost:7500',
-  pathRewrite: { '^/dashboard': '' },
-  changeOrigin: true
-}));
-
-// Patcher API (7101)
-app.use('/patcher', requireAdmin, createProxyMiddleware({
-  target: 'http://localhost:7101',
-  changeOrigin: true
-}));
-
-// Dev sync (7101)
-app.use('/dev-sync', requireAdmin, createProxyMiddleware({
-  target: 'http://localhost:7101',
-  pathRewrite: { '^/dev-sync': '/dev' },
-  changeOrigin: true
-}));
-
-// Tradeline admin pages (3002-3021) - dynamic routing
-app.use('/tradelines/:name', requireAuth, (req, res, next) => {
-  const tradelinePorts = {
-    security: 3002,
-    administrative: 3003,
-    facilities: 3004,
-    electrical: 3005,
-    logistics: 3006,
-    lowvoltage: 3007,
-    landscaping: 3008,
-    hvac: 3009,
-    plumbing: 3010,
-    janitorial: 3011,
-    support: 3012,
-    waste: 3013,
-    construction: 3014,
-    roofing: 3015,
-    painting: 3016,
-    flooring: 3017,
-    demolition: 3018,
-    environmental: 3019,
-    concrete: 3020,
-    fencing: 3021
+/**
+ * Create proxy with user headers
+ * Backend services can trust these headers because only gateway can reach them
+ */
+function createAuthProxy(target, pathRewrite = null) {
+  const options = {
+    target,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+      // Pass authenticated user info to backend
+      if (req.user) {
+        proxyReq.setHeader('X-User-Id', req.user.id);
+        proxyReq.setHeader('X-User-Email', req.user.email);
+        proxyReq.setHeader('X-User-Name', req.user.name || '');
+        proxyReq.setHeader('X-User-Role', req.user.role || 'user');
+        proxyReq.setHeader('X-User-Domain', req.user.domain || 'portal');
+        proxyReq.setHeader('X-Company-Id', req.user.company_id || '');
+        proxyReq.setHeader('X-Gateway-Auth', 'true');
+      }
+    }
   };
 
+  if (pathRewrite) {
+    options.pathRewrite = pathRewrite;
+  }
+
+  return createProxyMiddleware(options);
+}
+
+// Dashboard (7500)
+app.use('/dashboard', requireAuth, createAuthProxy('http://localhost:7500', { '^/dashboard': '' }));
+
+// Patcher API (7101) - Admin only
+app.use('/patcher', requireAuth, requireAdmin, createAuthProxy('http://localhost:7101'));
+
+// Dev sync (7101) - Admin only
+app.use('/dev-sync', requireAuth, requireAdmin, createAuthProxy('http://localhost:7101', { '^/dev-sync': '/dev' }));
+
+// Tradeline admin pages (3002-3021) - dynamic routing
+const tradelinePorts = {
+  security: 3002, administrative: 3003, facilities: 3004, electrical: 3005,
+  logistics: 3006, lowvoltage: 3007, landscaping: 3008, hvac: 3009,
+  plumbing: 3010, janitorial: 3011, support: 3012, waste: 3013,
+  construction: 3014, roofing: 3015, painting: 3016, flooring: 3017,
+  demolition: 3018, environmental: 3019, concrete: 3020, fencing: 3021
+};
+
+app.use('/tradelines/:name', requireAuth, (req, res, next) => {
   const port = tradelinePorts[req.params.name];
   if (!port) {
     return res.status(404).json({ error: 'Unknown tradeline' });
   }
 
-  createProxyMiddleware({
-    target: `http://localhost:${port}`,
-    pathRewrite: { [`^/tradelines/${req.params.name}`]: '' },
-    changeOrigin: true
+  createAuthProxy(`http://localhost:${port}`, {
+    [`^/tradelines/${req.params.name}`]: ''
   })(req, res, next);
 });
 
 // ============================================================
-// PORTAL USER ROUTES (nextbidportal.com)
+// PORTAL USER ROUTES
 // ============================================================
 
-/**
- * Browse opportunities
- */
 app.get('/opportunities', requireAuth, async (req, res) => {
-  // TODO: Fetch opportunities for user's tradelines
-  res.render('opportunities', { user: req.session.user });
+  res.render('opportunities', { user: req.user });
 });
 
-/**
- * My bids
- */
 app.get('/bids', requireAuth, async (req, res) => {
-  res.render('bids', { user: req.session.user });
+  res.render('bids', { user: req.user });
 });
 
 // ============================================================
@@ -637,29 +693,28 @@ app.listen(PORT, () => {
 ║   NextBid Authentication Gateway                               ║
 ║                                                                ║
 ║   Port: ${PORT}                                                   ║
+║   Auth: JWT with refresh tokens                                ║
 ║                                                                ║
-║   Domains:                                                     ║
-║   - nextbidportal.com → User Portal                            ║
-║   - nextbidengine.com → Admin/Dev Portal                       ║
+║   Token Expiry:                                                ║
+║   - Access Token:  1 hour (auto-refreshes)                     ║
+║   - Refresh Token: 7 days                                      ║
 ║                                                                ║
 ║   Routes:                                                      ║
 ║   GET  /login            - Login page                          ║
-║   POST /login            - Process login                       ║
-║   GET  /logout           - Logout                              ║
+║   POST /login            - Process login (issues JWT)          ║
+║   GET  /logout           - Logout (clears tokens)              ║
 ║   GET  /register         - Registration page                   ║
 ║   POST /register         - Process registration                ║
 ║   GET  /profile          - User profile                        ║
-║   POST /profile/creds    - Update company credentials          ║
 ║                                                                ║
-║   Proxied Routes (authenticated):                              ║
+║   Proxied Routes (with user headers):                          ║
 ║   /dashboard/*           → 7500 Dashboard                      ║
 ║   /patcher/*             → 7101 Patcher (admin only)           ║
 ║   /dev-sync/*            → 7101 Dev Sync (admin only)          ║
 ║   /tradelines/:name/*    → 3002-3021 Tradeline admins          ║
 ║                                                                ║
-║   API Routes (internal services):                              ║
-║   GET /api/credentials/:company/:source                        ║
-║   GET /api/tradeline/:name/companies                           ║
+║   Backend services receive headers:                            ║
+║   X-User-Id, X-User-Email, X-User-Role, X-Company-Id           ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
   `);

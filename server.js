@@ -93,7 +93,7 @@ function verifyToken(token) {
 function setAuthCookies(res, accessToken, refreshToken) {
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to true when using HTTPS
     sameSite: 'lax',
     path: '/'
   };

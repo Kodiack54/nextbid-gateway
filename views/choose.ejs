@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Choose Your Destination - NextBid</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #111827 0%, #1e3a5f 50%, #111827 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .logo-img {
+      width: 180px;
+      height: auto;
+      margin: 0 auto 16px;
+      display: block;
+    }
+    .header h1 {
+      color: #fff;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #9ca3af;
+      font-size: 16px;
+    }
+    .user-badge {
+      display: inline-block;
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #a78bfa;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-top: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .cards {
+      display: flex;
+      gap: 24px;
+    }
+    .card {
+      flex: 1;
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: block;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .card-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 40px;
+    }
+    .card.portal .card-icon {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+    .card.dashboard .card-icon {
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    }
+    .card h2 {
+      color: #111827;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .card p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .card-button {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .card.portal .card-button {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .card.portal:hover .card-button {
+      background: #2563eb;
+    }
+    .card.dashboard .card-button {
+      background: #8b5cf6;
+      color: #fff;
+    }
+    .card.dashboard:hover .card-button {
+      background: #7c3aed;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+    }
+    .footer a {
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .footer a:hover {
+      color: #fff;
+    }
+    @media (max-width: 640px) {
+      .cards {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="/images/nextbid-logo.png" alt="NextBid" class="logo-img">
+      <h1>Welcome back, <%= user.name || user.email.split('@')[0] %></h1>
+      <p>Where would you like to go?</p>
+      <span class="user-badge"><%= user.role %></span>
+    </div>
+
+    <div class="cards">
+      <a href="/opportunities" class="card portal">
+        <div class="card-icon">&#127919;</div>
+        <h2>NextBid Portal</h2>
+        <p>Browse opportunities, manage bids, and track your government contracts.</p>
+        <span class="card-button">Go to Portal &rarr;</span>
+      </a>
+
+      <a href="/dashboard-redirect" class="card dashboard">
+        <div class="card-icon">&#128202;</div>
+        <h2>NextBid Dashboard</h2>
+        <p>Manage tradeline servers, view KPIs, and control the engine infrastructure.</p>
+        <span class="card-button">Go to Dashboard &rarr;</span>
+      </a>
+    </div>
+
+    <div class="footer">
+      <a href="/logout">Sign out</a>
+    </div>
+  </div>
+</body>
+</html>

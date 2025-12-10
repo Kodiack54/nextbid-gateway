@@ -248,8 +248,11 @@ app.post('/login', async (req, res) => {
     console.log(`[Auth] User logged in: ${user.email} (${user.role || user.domain})`);
 
     // Redirect based on role/domain
-    if (user.domain === 'engine' || user.role === 'superadmin') {
-      res.redirect('/dashboard');
+    if (user.role === 'superadmin' || user.role === 'admin' || user.role === 'dev') {
+      // Admins get a choice page
+      res.redirect('/choose');
+    } else if (user.domain === 'engine') {
+      res.redirect('/dashboard-redirect');
     } else {
       res.redirect('/opportunities');
     }
@@ -372,9 +375,14 @@ app.post('/register', async (req, res) => {
  * Home - redirect based on domain and onboarding status
  */
 app.get('/', requireAuth, async (req, res) => {
-  // Superadmins and engine users go to dashboard
-  if (req.user.role === 'superadmin' || req.user.domain === 'engine') {
-    return res.redirect('/dashboard');
+  // Admins get choice page
+  if (req.user.role === 'superadmin' || req.user.role === 'admin' || req.user.role === 'dev') {
+    return res.redirect('/choose');
+  }
+
+  // Engine users go to dashboard
+  if (req.user.domain === 'engine') {
+    return res.redirect('/dashboard-redirect');
   }
 
   // Check onboarding status for portal users
@@ -389,6 +397,22 @@ app.get('/', requireAuth, async (req, res) => {
   }
 
   res.redirect('/opportunities');
+});
+
+/**
+ * Choose page - for admins to pick Portal or Dashboard
+ */
+app.get('/choose', requireAuth, (req, res) => {
+  res.render('choose', { user: req.user });
+});
+
+/**
+ * Dashboard redirect - goes directly to dashboard server
+ */
+app.get('/dashboard-redirect', requireAuth, (req, res) => {
+  // Redirect to the actual dashboard server
+  const dashboardUrl = process.env.DASHBOARD_URL || 'http://134.199.209.140:7500';
+  res.redirect(dashboardUrl);
 });
 
 /**

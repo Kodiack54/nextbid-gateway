@@ -629,8 +629,13 @@ function createAuthProxy(target, pathRewrite = null) {
   return createProxyMiddleware(options);
 }
 
-// Dashboard (7500)
+// Dashboard (7500) - proxy all paths including static assets
 app.use('/dashboard', requireAuth, createAuthProxy('http://localhost:7500', { '^/dashboard': '' }));
+
+// Dashboard static assets (CSS, JS, images) - needed because dashboard HTML uses absolute paths like /css/
+app.use('/css', requireAuth, createAuthProxy('http://localhost:7500'));
+app.use('/js', requireAuth, createAuthProxy('http://localhost:7500'));
+app.use('/images', requireAuth, createAuthProxy('http://localhost:7500'));
 
 // Patcher API (7101) - Admin only
 app.use('/patcher', requireAuth, requireAdmin, createAuthProxy('http://localhost:7101'));

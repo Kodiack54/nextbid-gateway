@@ -6,12 +6,7 @@
   <title>Sign In - NextBid Portal</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       background: linear-gradient(135deg, #111827 0%, #1e3a5f 50%, #111827 100%);
@@ -21,257 +16,131 @@
       justify-content: center;
       padding: 16px;
     }
-
-    .container {
-      width: 100%;
-      max-width: 400px;
-      animation: fadeIn 0.3s ease-out;
-    }
-
+    .container { width: 100%; max-width: 900px; animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-
-    /* Logo Section */
-    .logo-section {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .logo-img {
-      width: 180px;
-      height: auto;
-      margin: 0 auto 16px;
-      display: block;
-    }
-
-    .logo-section h1 {
-      color: #fff;
-      font-size: 36px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .logo-section p {
-      color: #9ca3af;
-      font-size: 16px;
-    }
-
-    /* Login Card */
-    .login-card {
+    .logo-section { text-align: center; margin-bottom: 32px; }
+    .logo-img { width: 200px; height: auto; margin: 0 auto 16px; display: block; }
+    .logo-section p { color: #9ca3af; font-size: 16px; }
+    .split-card {
+      display: flex;
       background: #fff;
-      padding: 32px;
       border-radius: 16px;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
     }
-
-    .login-card h2 {
-      color: #111827;
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 24px;
-    }
-
-    /* Error Message */
+    .left-column { flex: 1; padding: 40px; border-right: 1px solid #e5e7eb; }
+    .right-column { flex: 1; padding: 40px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); }
+    .left-column h2 { color: #111827; font-size: 24px; font-weight: 700; margin-bottom: 24px; }
     .error {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #b91c1c;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      font-size: 14px;
+      background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;
     }
-
-    /* Form Styles */
-    .form-group {
-      margin-bottom: 16px;
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 8px; color: #374151; font-weight: 500; font-size: 14px; }
+    input[type="email"], input[type="password"] {
+      width: 100%; padding: 12px 16px; border: 1px solid #d1d5db;
+      border-radius: 8px; font-size: 16px; transition: all 0.2s; background: #fff;
     }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      color: #374151;
-      font-weight: 500;
-      font-size: 14px;
-    }
-
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: all 0.2s;
-      background: #fff;
-    }
-
-    input[type="email"]:focus,
-    input[type="password"]:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-    }
-
-    input::placeholder {
-      color: #9ca3af;
-    }
-
+    input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    input::placeholder { color: #9ca3af; }
     button[type="submit"] {
-      width: 100%;
-      padding: 12px;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-top: 8px;
+      width: 100%; padding: 12px; background: #2563eb; color: #fff;
+      border: none; border-radius: 8px; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s; margin-top: 8px;
     }
-
-    button[type="submit"]:hover {
-      background: #1d4ed8;
-    }
-
-    button[type="submit"]:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* Workspace Message */
-    .workspace-msg {
-      text-align: center;
-      margin-top: 24px;
-      color: #6b7280;
-      font-size: 14px;
-    }
-
-    /* Register Link */
+    button[type="submit"]:hover { background: #1d4ed8; }
+    .workspace-msg { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
     .register-link {
-      text-align: center;
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid #e5e7eb;
-      color: #6b7280;
-      font-size: 14px;
+      text-align: center; margin-top: 16px; padding-top: 16px;
+      border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;
     }
-
-    .register-link a {
-      color: #2563eb;
-      text-decoration: none;
-      font-weight: 500;
+    .register-link a { color: #2563eb; text-decoration: none; font-weight: 500; }
+    .register-link a:hover { text-decoration: underline; }
+    .right-column h3 { color: #111827; font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .right-column .tagline { color: #6b7280; font-size: 14px; margin-bottom: 32px; }
+    .feature-list { list-style: none; }
+    .feature-item { display: flex; align-items: flex-start; margin-bottom: 24px; }
+    .feature-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-right: 16px; flex-shrink: 0; font-size: 20px;
     }
-
-    .register-link a:hover {
-      text-decoration: underline;
-    }
-
-    /* Footer */
-    .footer {
-      text-align: center;
-      margin-top: 24px;
-      color: #9ca3af;
-      font-size: 14px;
-    }
-
-    /* Features Section */
-    .features {
-      background: #f9fafb;
-      border-radius: 8px;
-      padding: 16px;
-      margin-top: 20px;
-    }
-
-    .features h3 {
-      color: #374151;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .features ul {
-      list-style: none;
-      font-size: 13px;
-      color: #6b7280;
-    }
-
-    .features li {
-      padding: 6px 0;
-      display: flex;
-      align-items: center;
-    }
-
-    .check-icon {
-      color: #10b981;
-      margin-right: 10px;
-      font-weight: bold;
-      font-size: 14px;
+    .feature-icon.blue { background: #dbeafe; }
+    .feature-icon.purple { background: #ede9fe; }
+    .feature-icon.green { background: #dcfce7; }
+    .feature-icon.orange { background: #ffedd5; }
+    .feature-content h4 { color: #111827; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .feature-content p { color: #6b7280; font-size: 13px; line-height: 1.5; }
+    .footer { text-align: center; margin-top: 24px; color: #9ca3af; font-size: 14px; }
+    @media (max-width: 768px) {
+      .split-card { flex-direction: column; }
+      .left-column { border-right: none; border-bottom: 1px solid #e5e7eb; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Logo -->
     <div class="logo-section">
       <img src="/images/nextbid-logo.png" alt="NextBid" class="logo-img">
       <p>Government Contract Intelligence</p>
     </div>
-
-    <!-- Login Card -->
-    <div class="login-card">
-      <h2>Sign In</h2>
-
-      <% if (error) { %>
-        <div class="error"><%= error %></div>
-      <% } %>
-
-      <form method="POST" action="/login">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required placeholder="you@company.com">
-        </div>
-
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required placeholder="••••••••">
-        </div>
-
-        <button type="submit">Sign In</button>
-      </form>
-
-      <p class="workspace-msg">You'll be taken to your workspace</p>
-
-      <div class="register-link">
-        Don't have an account? <a href="/register">Create one</a>
+    <div class="split-card">
+      <div class="left-column">
+        <h2>Sign In</h2>
+        <% if (error) { %><div class="error"><%= error %></div><% } %>
+        <form method="POST" action="/login">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required placeholder="you@company.com">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required placeholder="••••••••">
+          </div>
+          <button type="submit">Sign In</button>
+        </form>
+        <p class="workspace-msg">You'll be taken to your workspace</p>
+        <div class="register-link">Don't have an account? <a href="/register">Create one</a></div>
       </div>
-
-      <div class="features">
-        <h3>What you get</h3>
-        <ul>
-          <li><span class="check-icon">✓</span> Real-time bid opportunity discovery</li>
-          <li><span class="check-icon">✓</span> AI-powered scope analysis</li>
-          <li><span class="check-icon">✓</span> Automated proposal generation</li>
-          <li><span class="check-icon">✓</span> Multi-source aggregation</li>
+      <div class="right-column">
+        <h3>What You Get</h3>
+        <p class="tagline">Everything you need to win government contracts</p>
+        <ul class="feature-list">
+          <li class="feature-item">
+            <div class="feature-icon blue">&#128269;</div>
+            <div class="feature-content">
+              <h4>Real-Time Opportunity Discovery</h4>
+              <p>Automatically find relevant bid opportunities across 20+ government sources the moment they're posted.</p>
+            </div>
+          </li>
+          <li class="feature-item">
+            <div class="feature-icon purple">&#129302;</div>
+            <div class="feature-content">
+              <h4>AI-Powered Scope Analysis</h4>
+              <p>Our AI reads and analyzes every solicitation, extracting key requirements so you know exactly what's needed.</p>
+            </div>
+          </li>
+          <li class="feature-item">
+            <div class="feature-icon green">&#128196;</div>
+            <div class="feature-content">
+              <h4>Automated Proposal Generation</h4>
+              <p>Generate tailored proposal drafts in minutes, not days. Let AI handle the heavy lifting.</p>
+            </div>
+          </li>
+          <li class="feature-item">
+            <div class="feature-icon orange">&#127919;</div>
+            <div class="feature-content">
+              <h4>Smart Match Scoring</h4>
+              <p>See at a glance which opportunities are the best fit for your company with our intelligent scoring system.</p>
+            </div>
+          </li>
         </ul>
       </div>
     </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      <p>© 2025 NextBid. All rights reserved.</p>
-    </div>
+    <div class="footer"><p>&copy; 2025 NextBid. All rights reserved.</p></div>
   </div>
 </body>
 </html>

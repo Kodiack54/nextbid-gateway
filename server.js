@@ -403,7 +403,7 @@ app.post('/login', async (req, res) => {
  */
 function getProductUrl(product) {
   const productUrls = {
-    'dashboard': '/dashboard',
+    'dashboard': 'http://134.199.209.140:7500/dashboard',  // Dev dashboard - direct
     'portal': '/portal',
     'nextbidder': '/nextbidder',
     'nexttech': '/nexttech',

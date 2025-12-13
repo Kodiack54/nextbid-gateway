@@ -59,15 +59,15 @@ app.use((req, res, next) => {
 
 /**
  * Generate access and refresh tokens
+ * Now includes products[] array instead of role/domain
  */
 function generateTokens(user) {
   const payload = {
     id: user.id,
     email: user.email,
     name: user.name,
-    company_id: user.company_id,
-    domain: user.domain,
-    role: user.role
+    products: user.products || [],
+    onboarding_completed: user.onboarding_completed || false
   };
 
   const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -139,6 +139,59 @@ async function requireAuth(req, res, next) {
         .single();
 
       if (dbUser) {
+        // Re-check all 6 product tables for fresh products list
+        const products = [];
+
+        const { data: devUser } = await supabase
+          .from('dev_users')
+          .select('id')
+          .eq('nextbid_user_id', dbUser.id)
+          .eq('status', 'active')
+          .single();
+        if (devUser) products.push('dashboard');
+
+        const { data: portalUser } = await supabase
+          .from('portal_users')
+          .select('id')
+          .eq('nextbid_user_id', dbUser.id)
+          .eq('status', 'active')
+          .single();
+        if (portalUser) products.push('portal');
+
+        const { data: nextbidderUser } = await supabase
+          .from('nextbidder_users')
+          .select('id')
+          .eq('nextbid_user_id', dbUser.id)
+          .eq('status', 'active')
+          .single();
+        if (nextbidderUser) products.push('nextbidder');
+
+        const { data: nexttechUser } = await supabase
+          .from('nexttech_users')
+          .select('id')
+          .eq('nextbid_user_id', dbUser.id)
+          .eq('status', 'active')
+          .single();
+        if (nexttechUser) products.push('nexttech');
+
+        const { data: nexttaskUser } = await supabase
+          .from('nexttask_users')
+          .select('id')
+          .eq('nextbid_user_id', dbUser.id)
+          .eq('status', 'active')
+          .single();
+        if (nexttaskUser) products.push('nexttask');
+
+        const { data: nextsourceUser } = await supabase
+          .from('nextsource_users')
+          .select('id')
+          .eq('nextbid_user_id', dbUser.id)
+          .eq('status', 'active')
+          .single();
+        if (nextsourceUser) products.push('nextsource');
+
+        dbUser.products = products;
+
         // Generate new tokens
         const tokens = generateTokens(dbUser);
         setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
@@ -163,14 +216,25 @@ async function requireAuth(req, res, next) {
 }
 
 /**
- * Check if user is an admin (engine access)
- * Superadmins can access everything
+ * Check if user has access to a specific product
  */
-function requireAdmin(req, res, next) {
-  if (req.user && (req.user.domain === 'engine' || req.user.role === 'superadmin')) {
+function requireProduct(productName) {
+  return (req, res, next) => {
+    if (req.user && req.user.products && req.user.products.includes(productName)) {
+      return next();
+    }
+    res.status(403).json({ error: `Forbidden - ${productName} access required` });
+  };
+}
+
+/**
+ * Check if user has dashboard access (for admin routes)
+ */
+function requireDashboard(req, res, next) {
+  if (req.user && req.user.products && req.user.products.includes('dashboard')) {
     return next();
   }
-  res.status(403).json({ error: 'Forbidden - Admin access required' });
+  res.status(403).json({ error: 'Forbidden - Dashboard access required' });
 }
 
 // ============================================================
@@ -204,12 +268,13 @@ app.get('/login', (req, res) => {
 
 /**
  * Process login - issues JWT tokens
+ * Now checks all product tables to build products[] array
  */
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user in database
+    // Find user in central auth table
     const { data: user, error } = await supabase
       .from('nextbid_users')
       .select('*')
@@ -227,6 +292,71 @@ app.post('/login', async (req, res) => {
       return res.render('login', { error: 'Invalid email or password' });
     }
 
+    // Check all 6 product tables to build products[] array
+    const products = [];
+
+    // Product 1: Dashboard (dev_users)
+    const { data: devUser } = await supabase
+      .from('dev_users')
+      .select('id')
+      .eq('nextbid_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (devUser) products.push('dashboard');
+
+    // Product 2: Portal (portal_users)
+    const { data: portalUser } = await supabase
+      .from('portal_users')
+      .select('id')
+      .eq('nextbid_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (portalUser) products.push('portal');
+
+    // Product 3: NextBidder (nextbidder_users)
+    const { data: nextbidderUser } = await supabase
+      .from('nextbidder_users')
+      .select('id')
+      .eq('nextbid_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (nextbidderUser) products.push('nextbidder');
+
+    // Product 4: NextTech (nexttech_users)
+    const { data: nexttechUser } = await supabase
+      .from('nexttech_users')
+      .select('id')
+      .eq('nextbid_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (nexttechUser) products.push('nexttech');
+
+    // Product 5: NextTask (nexttask_users)
+    const { data: nexttaskUser } = await supabase
+      .from('nexttask_users')
+      .select('id')
+      .eq('nextbid_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (nexttaskUser) products.push('nexttask');
+
+    // Product 6: NextSource (nextsource_users)
+    const { data: nextsourceUser } = await supabase
+      .from('nextsource_users')
+      .select('id')
+      .eq('nextbid_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (nextsourceUser) products.push('nextsource');
+
+    // User must have access to at least one product
+    if (products.length === 0) {
+      return res.render('login', { error: 'No active product subscriptions found' });
+    }
+
+    // Add products to user object for token generation
+    user.products = products;
+
     // Generate JWT tokens
     const tokens = generateTokens(user);
     setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
@@ -241,20 +371,25 @@ app.post('/login', async (req, res) => {
     await supabase.from('nextbid_audit_log').insert({
       user_id: user.id,
       action: 'login',
+      product: products.length === 1 ? products[0] : 'multiple',
       ip_address: req.ip,
-      details: { user_agent: req.headers['user-agent'] }
+      details: { user_agent: req.headers['user-agent'], products }
     });
 
-    console.log(`[Auth] User logged in: ${user.email} (${user.role || user.domain})`);
+    console.log(`[Auth] User logged in: ${user.email} (products: ${products.join(', ')})`);
 
-    // Redirect based on role/domain
-    if (user.role === 'superadmin' || user.role === 'admin' || user.role === 'dev') {
-      // Admins get a choice page
-      res.redirect('/choose');
-    } else if (user.domain === 'engine') {
-      res.redirect('/dashboard-redirect');
+    // Check if first time user needs onboarding
+    if (!user.onboarding_completed) {
+      return res.redirect('/onboarding');
+    }
+
+    // Redirect based on number of products
+    if (products.length === 1) {
+      // Single product - go directly there
+      return res.redirect(getProductUrl(products[0]));
     } else {
-      res.redirect('/opportunities');
+      // Multiple products - show choice page
+      return res.redirect('/choose');
     }
 
   } catch (error) {
@@ -262,6 +397,21 @@ app.post('/login', async (req, res) => {
     res.render('login', { error: 'An error occurred. Please try again.' });
   }
 });
+
+/**
+ * Get the URL for a specific product
+ */
+function getProductUrl(product) {
+  const productUrls = {
+    'dashboard': '/dashboard',
+    'portal': '/portal',
+    'nextbidder': '/nextbidder',
+    'nexttech': '/nexttech',
+    'nexttask': '/nexttask',
+    'nextsource': '/nextsource'
+  };
+  return productUrls[product] || '/';
+}
 
 /**
  * Logout - clears JWT cookies
@@ -372,46 +522,37 @@ app.post('/register', async (req, res) => {
 // ============================================================
 
 /**
- * Home - redirect based on domain and onboarding status
+ * Home - redirect based on products and onboarding status
  */
 app.get('/', requireAuth, async (req, res) => {
-  // Admins get choice page
-  if (req.user.role === 'superadmin' || req.user.role === 'admin' || req.user.role === 'dev') {
-    return res.redirect('/choose');
-  }
-
-  // Engine users go to dashboard
-  if (req.user.domain === 'engine') {
-    return res.redirect('/dashboard-redirect');
-  }
-
-  // Check onboarding status for portal users
-  const { data: user } = await supabase
-    .from('nextbid_users')
-    .select('onboarding_completed')
-    .eq('id', req.user.id)
-    .single();
-
-  if (!user?.onboarding_completed) {
+  // Check onboarding first
+  if (!req.user.onboarding_completed) {
     return res.redirect('/onboarding');
   }
 
-  res.redirect('/opportunities');
+  // Single product - go directly there
+  if (req.user.products && req.user.products.length === 1) {
+    return res.redirect(getProductUrl(req.user.products[0]));
+  }
+
+  // Multiple products - show choice page
+  if (req.user.products && req.user.products.length > 1) {
+    return res.redirect('/choose');
+  }
+
+  // No products (shouldn't happen, but fallback)
+  res.redirect('/login');
 });
 
 /**
- * Choose page - for admins to pick Portal or Dashboard
+ * Choose page - for users with multiple products
  */
 app.get('/choose', requireAuth, (req, res) => {
-  res.render('choose', { user: req.user });
-});
-
-/**
- * Dashboard redirect - goes directly to dashboard server
- */
-app.get('/dashboard-redirect', requireAuth, (req, res) => {
-  // Redirect to dashboard through gateway proxy (not direct access)
-  res.redirect('/dashboard');
+  // Only show choice if user has multiple products
+  if (!req.user.products || req.user.products.length <= 1) {
+    return res.redirect('/');
+  }
+  res.render('choose', { user: req.user, products: req.user.products });
 });
 
 /**
@@ -661,18 +802,20 @@ app.use('/js', requireAuth, createAuthProxy('http://localhost:7500'));
 app.use('/images', requireAuth, createAuthProxy('http://localhost:7500'));
 
 // Patcher API (7101) - Admin only
-app.use('/patcher', requireAuth, requireAdmin, createAuthProxy('http://localhost:7101'));
+app.use('/patcher', requireAuth, requireDashboard, createAuthProxy('http://localhost:7101'));
 
-// Dev sync (7101) - Admin only
-app.use('/dev-sync', requireAuth, requireAdmin, createAuthProxy('http://localhost:7101', { '^/dev-sync': '/dev' }));
+// Dev sync (7101) - Dashboard users only
+app.use('/dev-sync', requireAuth, requireDashboard, createAuthProxy('http://localhost:7101', { '^/dev-sync': '/dev' }));
 
-// Tradeline admin pages (3002-3021) - dynamic routing
+// Tradeline engine servers (31001-31020) - dynamic routing
+// Engine Droplet: 64.23.151.201
+const ENGINE_HOST = process.env.ENGINE_HOST || '64.23.151.201';
 const tradelinePorts = {
-  security: 3002, administrative: 3003, facilities: 3004, electrical: 3005,
-  logistics: 3006, lowvoltage: 3007, landscaping: 3008, hvac: 3009,
-  plumbing: 3010, janitorial: 3011, support: 3012, waste: 3013,
-  construction: 3014, roofing: 3015, painting: 3016, flooring: 3017,
-  demolition: 3018, environmental: 3019, concrete: 3020, fencing: 3021
+  security: 31001, administrative: 31002, facilities: 31003, logistics: 31004,
+  electrical: 31005, lowvoltage: 31006, landscaping: 31007, hvac: 31008,
+  plumbing: 31009, janitorial: 31010, support: 31011, waste: 31012,
+  construction: 31013, roofing: 31014, painting: 31015, flooring: 31016,
+  demolition: 31017, environmental: 31018, concrete: 31019, fencing: 31020
 };
 
 app.use('/tradelines/:name', requireAuth, (req, res, next) => {
@@ -681,7 +824,7 @@ app.use('/tradelines/:name', requireAuth, (req, res, next) => {
     return res.status(404).json({ error: 'Unknown tradeline' });
   }
 
-  createAuthProxy(`http://localhost:${port}`, {
+  createAuthProxy(`http://${ENGINE_HOST}:${port}`, {
     [`^/tradelines/${req.params.name}`]: ''
   })(req, res, next);
 });
